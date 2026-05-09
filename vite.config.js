@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
-// GitHub Pages 배포 시 base 경로가 필요하면 Phase 6에서 설정.
-export default defineConfig({
+// GitHub Pages 배포: 빌드 시 base 경로를 `/dopamine-wheel/`로 강제.
+// dev / preview / test에서는 '/' 그대로 사용 (NODE_ENV=production && command=='build'일 때만 적용).
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/dopamine-wheel/' : '/',
   plugins: [react()],
   test: {
     environment: 'jsdom',
@@ -17,4 +19,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
