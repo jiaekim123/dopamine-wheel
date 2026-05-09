@@ -98,12 +98,18 @@ function buildPegs(world, n) {
 
   const pegs = [];
   const positions = [];
+  // v2.5.1 — 좌우 끝 커버리지 수정. 이전엔 짝수 행 c<cols 루프로 우측 1칸 peg가 없어
+  // 맨 오른쪽 bin으로 떨어진 공이 수직 낙하하는 현상이 있었음.
+  // 수정: 짝수 행은 cols+1개 peg (양 끝 innerLeft·innerRight에 닿음),
+  //       홀수 행은 cols개 peg (반칸 안쪽에서 시작/끝).
   for (let r = 0; r < rows; r++) {
     const y = ROULETTE.pegFieldTop + (r + 1) * rowSpacing;
-    const offset = r % 2 === 0 ? 0 : colSpacing / 2;
-    for (let c = 0; c < cols; c++) {
+    const isOdd = r % 2 === 1;
+    const offset = isOdd ? colSpacing / 2 : 0;
+    const endC = isOdd ? cols : cols + 1; // exclusive
+    for (let c = 0; c < endC; c++) {
       const x = innerLeft + offset + c * colSpacing;
-      if (x < innerLeft || x > innerRight) continue;
+      if (x < innerLeft - 0.5 || x > innerRight + 0.5) continue;
       const body = Matter.Bodies.circle(x, y, ROULETTE.pegRadius, {
         isStatic: true,
         restitution: 0.55,

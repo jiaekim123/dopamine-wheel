@@ -4,7 +4,7 @@
 > **확인 방법**: `npm run dev` 후 브라우저에서 직접 시연
 > **체크 표기**: ☑ OK / ☐ 미확인 / △ 부분 확인 / ⚠ 추가 점검 필요 / ✗ 문제 있음 / ✅ 해결됨
 
-자동 테스트 **108/108 통과**.
+자동 테스트 **118/118 통과**.
 빌드: 메인 297 KB / matter chunk 85 KB / 게임별 7~10 KB (gzip 합 ~145 KB).
 
 ---
@@ -63,7 +63,7 @@
 - ☑ "다시 하기" / "처음으로" 동작 — ESC→확인 등가 검증
 - ☑ **last 모드 헤드라인 버그 수정**: "🎯 운명의 마지막 0명! 🎯" → "🎯 운명의 마지막 {k}명! 🎯" — `winnerRanks.length`(빈 배열)이 아니라 `winnerCount`로 교체 ✅
 
-### Phase 3-2 — 🏁 야생 더비 (Coral, v2.2~v2.3.1로 재정의됨)
+### Phase 3-2 — 🏁 카오스 레이스 (Coral, v2.2~v2.3.1로 재정의됨)
 - ☑ 트랙·결승선 Coral / Gold 일관
 - ☑ 매 프레임 가속도 다양 (단조롭지 않음)
 - ☐ 결승선 임박 슬로우모션
@@ -158,7 +158,7 @@
 - ☐ 폭발 후 0.3초 인터미션 — 좌석 1.25× 카메라 줌 + Coral/Gold glow + 좌석 메달 배지
 - ✅ **2026-05-09 사용자 피드백**: 인터미션 중앙 "💥 X등 — 이름" 큰 팝업 **제거 완료**. 좌석 줌 + 좌석 배지 + 좌하단 캐스터 캡션은 유지
 
-### A4. 야생 더비 결승 ceremony + 페이크 아웃 4종
+### A4. 카오스 레이스 결승 ceremony + 페이크 아웃 4종
 - ☐ 게임 시작 시 0/1/2 페이크 추첨 (25/55/20%)
 - ☐ 다크호스 — 60% 시점 후방 30% 1마리, 1초 노출 ("🌟 DARK HORSE" Coral 배지)
 - ☐ 스턴 — 30~50% 중위권 1마리, ⭐ 회전 + 미세 흔들림 0.5초
@@ -178,7 +178,7 @@
 
 ### A6. 캐스터 캡션 시스템
 - ☐ 좌하단 1줄 자막 (다크 카드 + blur, caption 14px/500)
-- ☐ 야생 더비: 🏁 출발 / 🌟 다크호스 등장 / 휘청(스턴) / 📸 사진판정 / 1·2·3등 골인 / 💤 잠 / 💦 미끄럼 / 🐌 막판 폭주 / 🐰 깜짝 / 🐢 추격 / ❄️ 빙판 / 🐹 휠 폭주 / 🌟 변신 / 🦅 잠시 쉬어간다 (v2.3)
+- ☐ 카오스 레이스: 🏁 출발 / 🌟 다크호스 등장 / 휘청(스턴) / 📸 사진판정 / 1·2·3등 골인 / 💤 잠 / 💦 미끄럼 / 🐌 막판 폭주 / 🐰 깜짝 / 🐢 추격 / ❄️ 빙판 / 🐹 휠 폭주 / 🌟 변신 / 🦅 잠시 쉬어간다 (v2.3)
 - ☐ 로또: 추첨 시작 / 매 추출 N등-이름
 - ☐ 폭탄: Round X 시작 / 💥 X등-이름 / 절반 통과
 - ☐ 룰렛: 낙하 시작 / 매 추출 N등-이름
@@ -196,7 +196,7 @@
 - ☐ 라운드 카운터 1초 동안 Gold 강조
 - ☐ "⚡ 절반 통과!" 캐스터 캡션
 
-### V3. 야생 더비 부스터 타일
+### V3. 카오스 레이스 부스터 타일
 - ☐ 트랙 30~70% 사이에 1~2개 Coral 글로우 띠 (🚀 마커, pulse)
 - ☐ 캐릭터가 통과 시 0.4초 시각 부스트 (drop-shadow + scale 1.15× + Coral glow)
 - ☐ 결과는 변하지 않음 (시각만)
@@ -212,8 +212,8 @@
 - ☐ Mustard 띠 + Gold 캡 시각화
 - ☐ 공이 점프대에 닿으면 측면으로 튕김
 
-### V1+V4. 야생 더비 시네마틱 카메라 + 16명 확장
-- ☑ Home 야생 더비 카드 권장 ~16명 (이전 12명) — 카드 메타에 "권장 ~16명 · 12~20초" 직접 확인 (2차 세션)
+### V1+V4. 카오스 레이스 시네마틱 카메라 + 16명 확장
+- ☑ Home 카오스 레이스 카드 권장 ~16명 (이전 12명) — 카드 메타에 "권장 ~16명 · 12~20초" 직접 확인 (2차 세션)
 - ☐ 17명 이상에서 권장 초과 배지 *(미시연 — 50명 케이스에서는 모두 권장 초과 배지로 검증됨)*
 - ☐ 13~16명에서 트랙 폰트 자동 축소 (clamp 20~32px) *(미시연)*
 - ☐ 게임 시작 4초 + leader 진행률 ≥ 45%일 때 우상단 PIP "🎥 LEADER · {speciesEmoji} {species}" 카드 *(RAF throttle로 미관찰)*
@@ -228,7 +228,7 @@
 - ☑ matter.js 별도 청크 85.42 KB / 27.34 KB gzip — `dist/assets/matter-*.js`
 - ☑ 게임별 청크 8~11 KB — HorseRace 9.96, Bomb 8.41, Roulette 10.34, Lotto 10.89 KB
 - ☑ CasterCaption 공유 청크 0.91 KB
-- ☐ 야생 더비/폭탄만 들어갈 때 matter.js 미로딩 (DevTools Network 직접 확인 필요 — 야생 더비는 matter.js 미사용)
+- ☐ 카오스 레이스/폭탄만 들어갈 때 matter.js 미로딩 (DevTools Network 직접 확인 필요 — 카오스 레이스는 matter.js 미사용)
 - ☐ 게임 진입 시 0.2초 페이드 fallback ("로딩 중…") *(미시연)*
 
 ### 반응형 패딩
@@ -265,14 +265,14 @@
 | `implementation_followup §2.2` | confetti.reset() | ✅ 핫픽스 |
 | `implementation_followup §2.3` | k≥13 그리드 flex 분기 | ✅ 핫픽스 (`WinnerBox`) |
 | `implementation_followup §2.4` | KCounter 색 통일 | ✅ 핫픽스 (`text-danger`) |
-| `implementation_followup §3.1` | 야생 더비(구 경주마) 페이크 4종 | ✅ v1.5 A4 |
+| `implementation_followup §3.1` | 카오스 레이스(구 경주마) 페이크 4종 | ✅ v1.5 A4 |
 | `implementation_followup §3.2` | HorseRace useMemo | ❌ 미반영 (cosmetic, OK) |
 | `implementation_followup §3.3` | 폭탄 인트로 시각 약함 | ✅ v1.5 A7 |
 | `implementation_followup §3.4` | ESC 확인 모달 | ✅ Phase 5 |
 | `implementation_followup §3.5` | tailwindcss-animate 의존성 | ✅ 핫픽스 |
 | `implementation_followup §5` | 운명의 낙하 드라마 보강 (Lv3) | 📋 **명세 완료, 코드 미반영** |
 | `PRD_feedback` 공통 4종 | 캐스터 캡션 / 채도 / 색상 / 라이브 보드 | ✅ v1.5 A6 + PRD §7.3a |
-| `PRD_feedback` 야생 더비 (구 경주마) | 부스터 / 결승 ceremony / 16명 + v2.2 동물 6종 + v2.3 positive quirk + v2.3.1 메인 이모지 | ✅ v2 V3 / v1.5 A4 / v2 V1+V4 / v2.2 / v2.3 / v2.3.1 |
+| `PRD_feedback` 카오스 레이스 (구 경주마) | 부스터 / 결승 ceremony / 16명 + v2.2 동물 6종 + v2.3 positive quirk + v2.3.1 메인 이모지 | ✅ v2 V3 / v1.5 A4 / v2 V1+V4 / v2.2 / v2.3 / v2.3.1 |
 | `PRD_feedback` 로또 | PIP / 추첨기 가속 페이크 | PIP 미사용 / ✅ v2 V5 |
 | `PRD_feedback` 폭탄 | (B) 회전 / 디지털 타이머 / 인터미션 | ✅ v1.5 A3 |
 | `PRD_feedback` 룰렛 | 35명 격하 / 점프대 | ✅ v1.5 A5 / v2 V6 |
@@ -310,7 +310,7 @@
 - **원인**: 자동화 탭이 background로 분류됨 (`document.visibilityState === 'hidden'`). Chrome이 background tab의 RAF를 1초당 1회로 강제 throttle.
 - **시도한 우회**: `Object.defineProperty(document, 'visibilityState', ...)` + `visibilitychange` dispatch + `window.focus()` — visibilityState는 'visible'로 바뀌나 RAF throttle은 풀리지 않음.
 - **영향 범위 (자동화 미가능)**:
-  - 게임 본편 시간 진행 (warmup → extracting / 폭탄 라운드 / 룰렛 낙하 / 야생 더비 결승)
+  - 게임 본편 시간 진행 (warmup → extracting / 폭탄 라운드 / 룰렛 낙하 / 카오스 레이스 결승)
   - 결과 화면 confetti 입자 시각 / 메달 색 시각
   - 페이크 아웃·슬로우모션·플래시·셰이크 등 시간 기반 효과 일체
   - V1~V6 다이나믹 보강 본편 효과 (LEADER PIP, 부스터, 점프대 등)

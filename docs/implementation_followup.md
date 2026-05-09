@@ -421,7 +421,7 @@ viewBox={`0 ${cameraRef.current.y} ${ROULETTE.width} ${ROULETTE.height / cameraR
 
 ---
 
-## 6. 경주마 → 야생 더비 (옵션 4: 혼합 동물 + 부스터/장애물) — 사용자 요청
+## 6. 경주마 → 카오스 레이스 (옵션 4: 혼합 동물 + 부스터/장애물) — 사용자 요청
 
 > **대상**: `src/games/horseRace/` 전체 + `src/lib/games.js`
 > **목표**: 단조로운 평행 레인 경주를 "동물 모션 차별화 + 트랙 환경 요소"로 카오스화. PRD §7.4의 "다크호스 / 스턴 마크" 페이크아웃 4종도 함께 정착.
@@ -429,9 +429,9 @@ viewBox={`0 ${cameraRef.current.y} ${ROULETTE.width} ${ROULETTE.height / cameraR
 
 ### 6.1 게임명 변경
 
-**후보**: 야생 더비 / 동물 달리기 / 정글 레이스 / 야생의 추격
+**후보**: 카오스 레이스 / 동물 달리기 / 정글 레이스 / 야생의 추격
 
-**추천**: **"야생 더비"** (Wild Derby) — "더비"는 경마 어휘이지만 동물 race로 확장 자연스러움. 짧고 임팩트 있음. 시그니처 컬러 Coral 유지.
+**추천**: **"카오스 레이스"** (Chaos Race) — "더비"는 경마 어휘이지만 동물 race로 확장 자연스러움. 짧고 임팩트 있음. 시그니처 컬러 Coral 유지.
 
 영향 범위: `lib/games.js` (id는 `horse` 유지 또는 `derby`로 리네임), `PRD.md`, `CHECK.md`, `PLAN.md`, 인게임 헤더, 폴더명 (`src/games/horseRace/` → `src/games/derby/`).
 
