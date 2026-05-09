@@ -62,13 +62,14 @@ describe('bomb simulation', () => {
     expect(rankings.map((r) => r.rank).sort()).toEqual([1, 2]);
   });
 
-  it('handles n=20 (max for bomb) within budget', () => {
+  it('handles n=20 (max for bomb) within bomb budget (v2.4.1: 2~5s fuse, ~120s max)', () => {
     const state = createBomb(buildParticipants(20));
-    runToFinish(state, 60);
+    // v2.4.1 — 19 라운드 × 최대 (5 + 0.55 + 0.3) = ~111s 가능. 여유 있게 130s까지 진행 허용.
+    runToFinish(state, 130);
     expect(state.finished).toBe(true);
     expect(getBombRankings(state)).toHaveLength(20);
-    // PRD §3.3 max 90초 보장
-    expect(state.elapsed).toBeLessThan(90);
+    // 평균 케이스는 ~76초, 최악 ~111초. 130초 한도 내에서는 무조건 종료.
+    expect(state.elapsed).toBeLessThan(130);
   });
 
   it('same seed produces same rankings', () => {
@@ -84,15 +85,47 @@ describe('bomb simulation', () => {
     expect(rA).toEqual(rB);
   });
 
-  it('computeBombTimings stays within budget', () => {
+  it('computeBombTimings reflects v2.4.1 fuse range (2~5s avg = 3.5s)', () => {
     const t2 = computeBombTimings(2);
     expect(t2.totalRounds).toBe(1);
-    expect(t2.fuseSec).toBeGreaterThanOrEqual(0.45);
+    // v2.4.1: avg fuse = (2 + 5) / 2 = 3.5
+    expect(t2.fuseSec).toBeCloseTo(3.5, 5);
 
     const t20 = computeBombTimings(20);
     expect(t20.totalRounds).toBe(19);
-    // 19 * (fuseSec + 0.55) 가 최대 게임 길이 24초 안에 들어가는지
-    const total = t20.totalRounds * (t20.fuseSec + t20.explosionSec);
-    expect(total).toBeLessThanOrEqual(25);
+    // 19 * (3.5 + 0.55 + 0.3) ≈ 82.65s 평균. 최악 케이스는 fuse 5s × 19 ≈ 111s.
+    // PRD §3.3 90s budget을 일부 케이스에서 상회하지만 사용자 의도대로 진행.
+    const totalAvg = t20.totalRounds * (t20.fuseSec + t20.explosionSec + t20.intermissionSec);
+    expect(totalAvg).toBeGreaterThan(60);
+    expect(totalAvg).toBeLessThan(110);
+  });
+
+  // v2.4 — 라운드별 fuse 무작위 검증
+  it('fuseSchedule has totalRounds entries with variance (v2.4)', () => {
+    const state = createBomb(buildParticipants(10));
+    expect(state.fuseSchedule).toHaveLength(state.totalRounds);
+    expect(state.fuseSchedule).toHaveLength(9);
+    // 모두 MIN_FUSE_SEC 이상
+    for (const f of state.fuseSchedule) {
+      expect(f).toBeGreaterThanOrEqual(0.45);
+    }
+    // 라운드별 fuse가 동일하지 않아야 함 (분산 검증)
+    const uniq = new Set(state.fuseSchedule.map((f) => Math.round(f * 100) / 100));
+    expect(uniq.size).toBeGreaterThanOrEqual(2);
+  });
+
+  it('fuseSchedule average is close to avgFuseSec ±25% (v2.4)', () => {
+    const state = createBomb(buildParticipants(10));
+    const avg = state.fuseSchedule.reduce((a, b) => a + b, 0) / state.fuseSchedule.length;
+    expect(avg).toBeGreaterThan(state.avgFuseSec * 0.75);
+    expect(avg).toBeLessThan(state.avgFuseSec * 1.25);
+  });
+
+  it('fuseSchedule is deterministic with same seed (v2.4)', () => {
+    __setTestSeed(11);
+    const sA = createBomb(buildParticipants(8));
+    __setTestSeed(11);
+    const sB = createBomb(buildParticipants(8));
+    expect(sA.fuseSchedule).toEqual(sB.fuseSchedule);
   });
 });

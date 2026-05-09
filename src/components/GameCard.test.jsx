@@ -14,20 +14,20 @@ describe('GameCard', () => {
 
   it('renders game name + description + emoji', () => {
     render(<GameCard game={horse} />);
-    expect(screen.getByText('경주마')).toBeDefined();
+    expect(screen.getByText('야생 더비')).toBeDefined();
     expect(screen.getByText(horse.description)).toBeDefined();
   });
 
   it('disabled when n < 2', () => {
     render(<GameCard game={horse} />);
-    const btn = screen.getByRole('button', { name: /경주마/ });
+    const btn = screen.getByRole('button', { name: /야생 더비/ });
     expect(btn.hasAttribute('disabled')).toBe(true);
   });
 
   it('enabled when n >= 2 + valid k + valid mode', () => {
     useGameStore.getState().setRawInput('a, b, c');
     render(<GameCard game={horse} />);
-    const btn = screen.getByRole('button', { name: /경주마/ });
+    const btn = screen.getByRole('button', { name: /야생 더비/ });
     expect(btn.hasAttribute('disabled')).toBe(false);
   });
 
@@ -48,7 +48,7 @@ describe('GameCard', () => {
   it('startGame is called on click when enabled (transitions to intro)', () => {
     useGameStore.getState().setRawInput('a, b, c');
     render(<GameCard game={horse} />);
-    fireEvent.click(screen.getByRole('button', { name: /경주마/ }));
+    fireEvent.click(screen.getByRole('button', { name: /야생 더비/ }));
     const state = useGameStore.getState();
     expect(state.selectedGame).toBe('horse');
     expect(state.screen).toBe('intro');
@@ -56,7 +56,7 @@ describe('GameCard', () => {
 
   it('click is no-op when disabled', () => {
     render(<GameCard game={horse} />);
-    fireEvent.click(screen.getByRole('button', { name: /경주마/ }));
+    fireEvent.click(screen.getByRole('button', { name: /야생 더비/ }));
     expect(useGameStore.getState().screen).toBe('home');
     expect(useGameStore.getState().selectedGame).toBeNull();
   });

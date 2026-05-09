@@ -120,6 +120,19 @@ export default {
         amber: '#ff8c00',
         // 범위 초과 등 경고용 빨강 (PRD v1.4 — k 자유 입력 시 빨간 경고)
         danger: '#d92d20',
+
+        // v2.5 카지노 네온 팔레트 — Home 다크 베이스용
+        'casino-base': '#0a0a0f',
+        'casino-elevated': '#1a1a2e',
+        'casino-felt': '#0d4d2c',
+        'casino-text': '#ffffff',
+        'casino-text-soft': '#a0a0c0',
+        'casino-gold': '#ffd700',
+        'casino-red': '#e10600',
+        'neon-pink': '#ff2d92',
+        'neon-cyan': '#00f5ff',
+        'neon-purple': '#b026ff',
+        'neon-lime': '#84cc16',
       },
 
       // §10.3 Typography
@@ -161,6 +174,10 @@ export default {
         'glow-forest': '0 0 24px rgba(10, 46, 14, 0.5)',
         'glow-mustard': '0 0 24px rgba(148, 109, 18, 0.6)',
         'focus-ring': '0 0 0 2px #458fff',
+        // v2.5 카지노 네온 글로우
+        'glow-neon-pink': '0 0 24px rgba(255, 45, 146, 0.6)',
+        'glow-neon-cyan': '0 0 24px rgba(0, 245, 255, 0.6)',
+        'glow-neon-purple': '0 0 24px rgba(176, 38, 255, 0.6)',
       },
 
       // 화면 전환 모션 (Editorial ↔ Dopamine)

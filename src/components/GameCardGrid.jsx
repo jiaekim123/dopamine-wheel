@@ -28,7 +28,7 @@ export default function GameCardGrid() {
     <section aria-labelledby="game-select-label">
       <h2
         id="game-select-label"
-        className="text-display-md font-normal text-ink mb-lg"
+        className="text-label-md font-medium text-casino-text mb-sm"
       >
         게임 선택
       </h2>

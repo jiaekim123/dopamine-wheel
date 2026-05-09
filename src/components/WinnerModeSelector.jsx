@@ -32,8 +32,15 @@ export default function WinnerModeSelector() {
   })();
 
   return (
-    <section aria-labelledby="winner-mode-label">
-      <span id="winner-mode-label" className="block text-label-md font-medium text-ink mb-sm">
+    <section
+      aria-labelledby="winner-mode-label"
+      className="rounded-md p-lg bg-casino-elevated"
+      style={{ border: '1px solid rgba(255, 45, 146, 0.15)' }}
+    >
+      <span
+        id="winner-mode-label"
+        className="block text-label-md font-medium text-casino-text mb-sm"
+      >
         당첨 방식
       </span>
 
@@ -66,14 +73,30 @@ export default function WinnerModeSelector() {
               placeholder='예: "1, 5, 7" 또는 "1 5 7"'
               aria-label="당첨 순위 직접 입력"
               aria-invalid={validation && !validation.ok ? 'true' : 'false'}
-              className="w-full max-w-md px-md py-sm rounded-sm border border-hairline bg-canvas text-body-md text-ink focus:outline-none focus:border-info-border focus:shadow-focus-ring transition-colors"
+              className="w-full max-w-md px-md py-sm rounded-sm bg-casino-base text-body-md text-casino-text placeholder:text-casino-text-soft/60 focus:outline-none transition-shadow"
+              style={{ border: '1px solid rgba(0, 245, 255, 0.25)' }}
+              onFocus={(e) => {
+                e.target.style.boxShadow = '0 0 12px rgba(0, 245, 255, 0.4)';
+                e.target.style.borderColor = '#00f5ff';
+              }}
+              onBlur={(e) => {
+                e.target.style.boxShadow = '';
+                e.target.style.borderColor = 'rgba(0, 245, 255, 0.25)';
+              }}
             />
             {validation?.ok ? (
-              <span className="text-caption text-success font-medium">
+              <span
+                className="text-caption font-medium"
+                style={{ color: '#84cc16' }}
+              >
                 ✓ {winnerCount}개 OK · {preview} 당첨
               </span>
             ) : (
-              <span className="text-caption text-amber font-medium" role="alert">
+              <span
+                className="text-caption font-medium"
+                role="alert"
+                style={{ color: '#ff8c00' }}
+              >
                 {validation?.error}
               </span>
             )}
@@ -86,16 +109,27 @@ export default function WinnerModeSelector() {
 
 function Option({ mode, checked, onSelect, label }) {
   return (
-    <label className="flex items-center gap-sm cursor-pointer text-body-md text-ink">
+    <label
+      className="flex items-center gap-sm cursor-pointer text-body-md text-casino-text"
+    >
       <input
         type="radio"
         name="winner-mode"
         value={mode}
         checked={checked}
         onChange={() => onSelect(mode)}
-        className="w-4 h-4 accent-ink"
+        className="w-4 h-4"
+        style={{ accentColor: '#ff2d92' }}
       />
-      <span>{label}</span>
+      <span
+        style={
+          checked
+            ? { textShadow: '0 0 8px rgba(255, 45, 146, 0.5)' }
+            : undefined
+        }
+      >
+        {label}
+      </span>
     </label>
   );
 }

@@ -421,4 +421,167 @@ viewBox={`0 ${cameraRef.current.y} ${ROULETTE.width} ${ROULETTE.height / cameraR
 
 ---
 
+## 6. 경주마 → 야생 더비 (옵션 4: 혼합 동물 + 부스터/장애물) — 사용자 요청
+
+> **대상**: `src/games/horseRace/` 전체 + `src/lib/games.js`
+> **목표**: 단조로운 평행 레인 경주를 "동물 모션 차별화 + 트랙 환경 요소"로 카오스화. PRD §7.4의 "다크호스 / 스턴 마크" 페이크아웃 4종도 함께 정착.
+> **예상 비용**: 3시간 (시뮬 1h + 컴포넌트 1.5h + 테스트 0.5h)
+
+### 6.1 게임명 변경
+
+**후보**: 야생 더비 / 동물 달리기 / 정글 레이스 / 야생의 추격
+
+**추천**: **"야생 더비"** (Wild Derby) — "더비"는 경마 어휘이지만 동물 race로 확장 자연스러움. 짧고 임팩트 있음. 시그니처 컬러 Coral 유지.
+
+영향 범위: `lib/games.js` (id는 `horse` 유지 또는 `derby`로 리네임), `PRD.md`, `CHECK.md`, `PLAN.md`, 인게임 헤더, 폴더명 (`src/games/horseRace/` → `src/games/derby/`).
+
+> **결정 필요**: 폴더명 리네임 여부. 유지 시 코드 변경 최소, 의미상 약간 어색. 권장은 **유지** (id `horse`도 유지) — 작업 범위 작아짐.
+
+### 6.2 동물 라인업 (6종)
+
+| 이모지 | 종 | 평균 속도 | quirk |
+|---|---|---|---|
+| 🐰 | rabbit | **1.05×** | 5~10초 시점에 0.4~1.0초 random sleep (1회) |
+| 🐢 | turtle | **0.92×** | 변동성 작음 (속도 분산 1/2). 토끼와 거북이 서사 — last-pattern memo로 토끼 잠 트리거 시 거북이 강조 |
+| 🐧 | penguin | **1.0×** | 5~15% 확률 미끄럼 (1초 동안 0.7배 감속, sin wobble 강함) |
+| 🐹 | hamster | **1.0×** | 가속도 변동 큼 (분산 1.5배). 짧은 폭발적 가속 빈번 |
+| 🐌 | snail | **0.8×** | 매우 느림. 단 마지막 20% 트랙 구간 1.6배 부스트 |
+| 🦅 | eagle | **1.02×** | 비행 — Y축 sin 모션 ±20px, 장애물 무시 (점프 자동 통과) |
+
+**평균 속도 보정**: 각 quirk가 시뮬 끝 시점에서 finish time 평균을 동일하게 만들도록 base velocity factor 보정. 즉 quirk가 일부 동물에게 불리하지 않게 평균 finish는 비슷.
+
+**할당 방식**: 참가자 인원 ≤ 6이면 동물 1:1 매핑 (랜덤 셔플). 7~16명이면 각 동물이 1~3마리씩 등장 가능 (참가자 i에 `i % 6` 동물 할당 후 랜덤 셔플).
+
+### 6.3 부스터 타일 시스템
+
+**위치**: 트랙 33%, 66% 지점 (각 ±5% 랜덤 jitter)
+
+**시각**: Coral 글로우 띠 (`#aa2d00` rgba 0.4 + box-shadow 0 0 12px coral). 수직으로 트랙 가로지르는 5px 폭 띠.
+
+**효과**:
+- 통과 시 0.4초 동안 1.4배 가속
+- 시각 효과: 동물 뒤에 코랄 잔상 (motion blur 같은 effect, 5프레임 동안 페이드아웃)
+- 캐스터 캡션: "🔥 {이름} 부스터 발동!" (CasterCaption.jsx 재사용)
+
+**공정성**: 부스터는 모든 동물에게 동일 효과. 결과 변경 없음 (페이크 아웃 카테고리, 시뮬 결정 후 시각만 적용 가능 — 다만 본 spec은 시뮬 자체에 부스터 적용 권장. 결정성은 시드로 유지).
+
+### 6.4 장애물 시스템
+
+**위치**: 트랙 25%, 50%, 75% 중 1~2개 랜덤 (시드별 결정).
+
+**시각**: 짧은 수직 막대 (장애물) + 위 텍스트 "🌳" 또는 "🪨". 트랙 라인을 가로지르지 않고 레인별로 개별.
+
+**동물별 통과 처리**:
+| 종 | 처리 |
+|---|---|
+| 🐰 rabbit | 점프 모션 (0.3s y 위로 -25px → 복귀), 시간 지체 0.1s |
+| 🐹 hamster | 점프 모션 + 약간 더 빠르게 (0.05s) |
+| 🐢 turtle | 우회 (옆으로 ±15px shake 0.3s), 0.3s 지체 |
+| 🐌 snail | 우회 + 0.5s 지체 |
+| 🐧 penguin | 미끄럼 — 0.4s 후진 후 복귀 (총 0.6s 지체) |
+| 🦅 eagle | 비행 — 그대로 통과 (시각만 위로 살짝 흔들림) |
+
+**캐스터 캡션 트리거**:
+- 토끼/햄스터 점프: "{이름} 장애물 점프!"
+- 펭귄 미끄럼: "💦 {이름} 미끄러졌다!"
+- 독수리 비행: 캡션 없음 (자연스러움)
+
+### 6.5 페이크 아웃 시스템 (PRD §7.3 정식 도입)
+
+**개수 추첨** (PRD §7.3): 게임 시작 시 0개 25% / 1개 55% / 2개 20%.
+
+**종류 (6종 풀)**:
+1. 부스터 통과 (랜덤 동물 1마리)
+2. 장애물 점프 화려 강조 (이미 통과는 자동, 시각만 강화)
+3. 토끼 잠 (해당 토끼가 있을 때만)
+4. 펭귄 미끄럼 (해당 펭귄이 있을 때만)
+5. **다크호스** — 마지막 1/3 구간에 후방 동물에게 1회성 1.6배 가속 (결과 보정으로 finish 동일)
+6. **사진판정** (기존 유지) — 1·2등 finishTime 차이 < 0.18s 자동 트리거
+
+**last-pattern memo**: state에 `lastFakeoutPatterns: string[]` 저장. 직전 게임과 같은 패턴 연속 회피.
+
+### 6.6 simulation.js 변경 명세
+
+**파일 구조 옵션**:
+- A) `horseRace/simulation.js`를 일반화하여 `racer` 추상화. 코드 변경 큼.
+- B) 신규 `derby/simulation.js` 작성. horseRace는 deprecated 또는 삭제.
+- **권장**: A — 점진적 변경, 폴더명/id는 유지.
+
+**state 추가 필드**:
+```js
+{
+  // 기존:
+  horses: [...],   // → racers (의미 일반화, 키는 유지 가능)
+  // 신규:
+  species: 'rabbit' | 'turtle' | ...,  // 각 racer에 species
+  quirkState: { sleeping: false, sleepEndAt: 0, slipEndAt: 0, ... },
+  boosters: [{ x, lane, hit: false }],   // 위치
+  obstacles: [{ x, lane, hit: false, type: 'tree'|'rock' }],
+  fakeouts: ['booster', 'darkhorse', ...],   // 게임 시작 시 결정
+  lastFakeoutPatterns: [...],   // localStorage에 저장 옵션
+}
+```
+
+**step 함수 변경**:
+1. 매 200ms target velocity 추첨 시 `species`별 보정 적용
+2. 부스터 hit 체크: racer.x가 booster.x 통과 + booster.hit=false → hit=true, racer에 0.4s boost
+3. 장애물 hit 체크: 동물별 quirk 적용 (sleep/slip/jump)
+4. quirk 진행 (rabbit sleep 만료 시 정상 복귀, penguin slip 종료, snail 막판 부스트 시작 등)
+
+**결정성**: 모든 quirk 발동/부스터 위치/장애물 위치/페이크아웃 선택은 `randFloat()` 기반. 시드 주입 시 결정적.
+
+### 6.7 컴포넌트 변경 (HorseRaceGame.jsx → DerbyGame.jsx 또는 유지)
+
+**렌더 분기**:
+- 동물 이모지: `RACER_EMOJI[species]` 매핑 (🐰 🐢 🐧 🐹 🐌 🦅)
+- 모션:
+  - 기본: x축 이동 (기존)
+  - eagle: y축 sin 모션 추가 — `transform: translate(${x}px, ${sin(t*4) * 20}px)`
+  - rabbit sleep: 정지 + "💤" 위에 표시 + 회전 (-15deg)
+  - penguin slip: x 후진 + 회전 -30deg
+- 부스터 통과 시 잔상 5프레임 (svg `<circle>` 잔상 또는 css filter)
+
+**캐스터 캡션 호출**:
+- `useEffect`로 quirkState 변화 감지 → CasterCaption.jsx에 메시지 전달
+- 메시지 큐 (1.5s 페이드)
+
+### 6.8 테스트 영향
+
+기존 horseRace 테스트 5건 — 시드 결정성 검증 baseline 갱신.
+
+| 테스트 | 영향 | 대응 |
+|---|---|---|
+| `produces rankings 1..n in 12명 race` | OK (rank 산출은 유지) | 그대로 |
+| `all participants finish` | OK | 그대로 |
+| `finishes within 10~30 seconds` | quirk으로 변동 폭 ↑ | 상한 35s로 완화 |
+| `same seed produces same rankings` | randFloat 호출 순서 변함 → 결정성 깨짐 | seed 42 baseline 갱신 |
+| `single horse finishes near AVG_FINISH_SEC` | 단일 racer일 때 species 랜덤 → 변동 | species 강제 주입 옵션 추가 |
+
+**신규 테스트 권장 (5건)**:
+1. species 분배가 결정적 (시드별)
+2. fakeout 0/1/2 추첨이 결정적
+3. booster 통과 시 racer가 hit 처리되는지
+4. obstacle 통과 시 동물별 지체 시간 (sleep/slip/jump)
+5. 평균 finish time이 동물 간 ±10% 이내 (공정성, 100회 시뮬 통계)
+
+### 6.9 구현 순서 (단계별 머지 가능)
+
+| 단계 | 작업 | 시간 | 머지 가능? |
+|---|---|---|---|
+| **A** | 동물 species 시스템 + quirk (sleep/slip/snail boost/eagle fly) | 1.5h | ✅ |
+| **B** | 부스터 타일 + 장애물 + 동물별 통과 처리 | 1.0h | ✅ |
+| **C** | 페이크아웃 0/1/2 추첨 + 캐스터 캡션 통합 | 0.5h | ✅ |
+
+A → B → C 순서. A만 머지해도 동물 차별화로 게임 살아남.
+
+### 6.10 주의사항
+
+- **PRD §6.3 이모지 풀**: 참가자 이모지 매핑은 그대로 유지 (라벨에 표시). species 이모지(말 자리)는 별도 — 시각 충돌 가능성 → species 이모지를 메인으로, 참가자 이모지는 라벨 옆에 작게.
+- **공정성 검증**: 100회 시뮬 통계로 species별 평균 rank가 ±0.5 이내인지 확인 (테스트 §6.8 #5).
+- **다크호스 페이크아웃이 결과 보정**: 후방 동물에게 1회성 부스트 → finish 시간이 같도록 다른 동물에게 미세 감속 또는 본인의 base velocity 감속으로 상쇄. 결정성 유지.
+- **eagle 비행 모션**: y축 +/-20px sin은 시각만 (matter.js 미사용). 결승선 판정은 x좌표만.
+- **참가자가 6명 이하**: 모든 동물이 등장하지 않을 수 있음. 시드 기반 랜덤 셔플로 다양성 확보.
+
+---
+
 **문서 끝.**

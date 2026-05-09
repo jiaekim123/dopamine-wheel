@@ -1,4 +1,4 @@
-// PRD §3.2 검증 — 경주마 시뮬레이션이 항상 rank 1~n을 산출하는지.
+// PRD §3.2 검증 — 야생 더비 시뮬레이션이 항상 rank 1~n을 산출하는지.
 // 테스트 시드(mulberry32) 주입으로 결정적 동작 확인.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -78,8 +78,49 @@ describe('horseRace simulation', () => {
   it('uses base speed proportional to AVG_FINISH_SEC', () => {
     // sanity check — 단일 horse가 평균에 가까운 시간에 도착
     const state = createHorseRace(buildParticipants(1));
-    runToFinish(state);
+    runToFinish(state, 60);
     expect(state.elapsed).toBeGreaterThan(AVG_FINISH_SEC * 0.5);
-    expect(state.elapsed).toBeLessThan(AVG_FINISH_SEC * 2.0);
+    expect(state.elapsed).toBeLessThan(AVG_FINISH_SEC * 3.0);
+  });
+
+  // v2.2 — 야생 더비 동물 species 시스템
+  it('assigns species from 6-species pool (v2.2)', () => {
+    const state = createHorseRace(buildParticipants(12));
+    const validSpecies = new Set(['rabbit', 'turtle', 'penguin', 'hamster', 'snail', 'eagle']);
+    for (const h of state.horses) {
+      expect(validSpecies.has(h.species)).toBe(true);
+      expect(typeof h.speciesEmoji).toBe('string');
+    }
+  });
+
+  it('species assignment is deterministic with seed (v2.2)', () => {
+    __setTestSeed(42);
+    const sA = createHorseRace(buildParticipants(8));
+    __setTestSeed(42);
+    const sB = createHorseRace(buildParticipants(8));
+    expect(sA.horses.map((h) => h.species)).toEqual(sB.horses.map((h) => h.species));
+  });
+
+  it('obstacles are 1~2 placed near 25/50/75% (v2.2)', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      __setTestSeed(seed);
+      const state = createHorseRace(buildParticipants(6));
+      expect(state.obstacles.length).toBeGreaterThanOrEqual(1);
+      expect(state.obstacles.length).toBeLessThanOrEqual(2);
+      for (const ox of state.obstacles) {
+        expect(ox).toBeGreaterThan(0.15);
+        expect(ox).toBeLessThan(0.85);
+      }
+    }
+  });
+
+  it('rankings include species + speciesEmoji fields (v2.2)', () => {
+    const state = createHorseRace(buildParticipants(4));
+    runToFinish(state, 60);
+    const rankings = getHorseRaceRankings(state);
+    for (const r of rankings) {
+      expect(typeof r.species).toBe('string');
+      expect(typeof r.speciesEmoji).toBe('string');
+    }
   });
 });

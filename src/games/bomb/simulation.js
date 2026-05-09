@@ -8,35 +8,29 @@
 
 import { randFloat } from '../../lib/random.js';
 
-// 라운드 시간 정책 (PRD §3.3 / §4 / v1.5 §7.6)
-const MIN_GAMEPLAY_SEC = 10;
-const MAX_GAMEPLAY_SEC = 25;
-const TARGET_PER_ROUND = 1.5;
+// 라운드 시간 정책 (PRD §3.3 / §4 / v1.5 §7.6 / v2.4.1 사용자 요청 fuse 2~5s)
 const EXPLOSION_DUR_SEC = 0.55;
 const INTERMISSION_DUR_SEC = 0.3; // v1.5: 폭발 후 클로즈업 + 배지 정지
-const MIN_FUSE_SEC = 0.45;
 
 // 패스 간격 (한 사람에서 다음 사람으로 폭탄이 넘어가는 시간)
 // 매 패스마다 새로 추첨되어 가속/감속 효과가 자연스럽게 발생한다.
 const PASS_MIN_SEC = 0.06;
 const PASS_MAX_SEC = 0.32;
 
+// v2.4.1 — 사용자 요청: 폭탄은 최소 2초 ~ 최대 5초 사이에서 터지도록 고정 범위.
+// 라운드마다 균등 분포로 무작위 추첨해 폭발 시점·좌석 편향 해소.
+// 게임 길이 영향: n=20 평균 ~76초 / 최악 ~111초 (PRD §3.3 90초 budget 일부 케이스에서 상회 가능).
+export const FUSE_MIN_SEC = 2.0;
+export const FUSE_MAX_SEC = 5.0;
+
 /**
  * @param {number} n
  * @returns {{ totalRounds, fuseSec, explosionSec, intermissionSec }}
+ *   fuseSec — 라운드별 평균 fuse (v2.4.1: 고정 범위 [FUSE_MIN, FUSE_MAX]의 산술평균).
  */
 export function computeBombTimings(n) {
   const totalRounds = Math.max(1, n - 1);
-  const target = Math.min(
-    MAX_GAMEPLAY_SEC,
-    Math.max(MIN_GAMEPLAY_SEC, totalRounds * TARGET_PER_ROUND)
-  );
-  const perRoundTotal = target / totalRounds;
-  // v1.5: 라운드당 = fuse + explosion + intermission
-  const fuseSec = Math.max(
-    MIN_FUSE_SEC,
-    perRoundTotal - EXPLOSION_DUR_SEC - INTERMISSION_DUR_SEC
-  );
+  const fuseSec = (FUSE_MIN_SEC + FUSE_MAX_SEC) / 2; // 3.5초 평균
   return {
     totalRounds,
     fuseSec,
@@ -45,12 +39,25 @@ export function computeBombTimings(n) {
   };
 }
 
+// v2.4.1 — 라운드 fuse를 [FUSE_MIN_SEC, FUSE_MAX_SEC] 균등 분포에서 직접 추첨.
+// 평균(avgFuse) 기반 ±40% 보정에서 고정 절대 범위로 변경 (사용자 요청).
+function pickRoundFuse() {
+  return FUSE_MIN_SEC + randFloat() * (FUSE_MAX_SEC - FUSE_MIN_SEC);
+}
+
 /**
  * @param {Array<{id:string,name:string,displayName:string,emoji:string}>} participants
  */
 export function createBomb(participants) {
   const n = participants.length;
-  const { totalRounds, fuseSec, explosionSec, intermissionSec } = computeBombTimings(n);
+  const { totalRounds, fuseSec: avgFuse, explosionSec, intermissionSec } =
+    computeBombTimings(n);
+
+  // v2.4.1 — 라운드별 fuse 사전 추첨 (시드 결정성 유지). 2~5s 균등 분포.
+  const fuseSchedule = [];
+  for (let r = 0; r < totalRounds; r++) {
+    fuseSchedule.push(pickRoundFuse());
+  }
 
   return {
     people: participants.map((p, i) => ({
@@ -66,7 +73,10 @@ export function createBomb(participants) {
     })),
     n,
     totalRounds,
-    fuseSec,
+    // v2.4: fuseSec은 *현재 라운드*의 fuse (매 라운드 갱신). avgFuse / fuseSchedule 별도 보존.
+    avgFuseSec: avgFuse,
+    fuseSchedule,
+    fuseSec: fuseSchedule[0],
     explosionSec,
     intermissionSec,
     // v2 V2 — 중반 이벤트 (라운드 절반 통과 알림). totalRounds * 0.5 시점에 1회.
@@ -78,7 +88,7 @@ export function createBomb(participants) {
     // 진행 상태
     elapsed: 0,
     currentRound: 0, // 0..totalRounds-1
-    fuseRemaining: fuseSec,
+    fuseRemaining: fuseSchedule[0],
     // 폭탄 위치 (seat index 0..n-1, 죽은 자리는 건너뛴다)
     bombSeat: 0,
     prevBombSeat: 0,
@@ -145,8 +155,10 @@ export function stepBomb(state, dt) {
       state.prevBombSeat = state.bombSeat;
       state.passProgress = 0;
       state.passTimer = 0;
-      state.fuseRemaining = state.fuseSec;
       state.currentRound++;
+      // v2.4 — 라운드별 fuse 갱신 (사전 추첨된 schedule에서 가져옴)
+      state.fuseSec = state.fuseSchedule[state.currentRound];
+      state.fuseRemaining = state.fuseSec;
     }
     return state;
   }

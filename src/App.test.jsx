@@ -15,14 +15,15 @@ describe('App routing', () => {
 
   it('renders Home by default', () => {
     render(<App />);
-    expect(screen.getByText('DopamineWheel')).toBeDefined();
+    // v2.5: 텍스트 "DopamineWheel"은 wordmark 이미지로 교체됨 — alt로 매칭
+    expect(screen.getAllByAltText('DopamineWheel').length).toBeGreaterThan(0);
     expect(screen.getByText('게임 선택')).toBeDefined();
   });
 
   it('clicking a game card transitions screen → intro', () => {
     useGameStore.getState().setRawInput('a, b, c');
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /경주마/ }));
+    fireEvent.click(screen.getByRole('button', { name: /야생 더비/ }));
     expect(useGameStore.getState().screen).toBe('intro');
     expect(useGameStore.getState().selectedGame).toBe('horse');
   });

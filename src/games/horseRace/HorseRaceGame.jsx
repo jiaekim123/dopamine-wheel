@@ -1,5 +1,6 @@
-// PRD §7.4 — 경주마 (Coral) 게임 화면.
+// PRD §7.4 — 야생 더비 (Coral) 게임 화면.
 // 다크 베이스 + Coral 액센트 (트랙 라인) + Gold 결승선.
+// v2.2: 동물 6종 (🐰🐢🐧🐹🐌🦅) + 장애물 시스템.
 // 결승선 임박 시 자동 슬로우모션, 1·2등 박빙 시 사진판정 배너 (페이크 아웃).
 
 import { useEffect, useReducer, useRef, useState } from 'react';
@@ -13,6 +14,8 @@ import {
   getFakeOutState,
   isFinaleWobbleActive,
   isBoostActive,
+  getQuirkState,
+  SPECIES_PROPS,
 } from './simulation.js';
 import CasterCaption from '../../components/CasterCaption.jsx';
 
@@ -21,7 +24,7 @@ const COLOR_GOLD = '#ffd700';
 const COLOR_TRACK = '#0a1419';
 const COLOR_LANE_LINE = 'rgba(170, 45, 0, 0.28)';
 
-const FINISH_HOLD_MS = 1400; // 모든 도착 후 결과 화면 전까지 잠시 머무는 시간
+const FINISH_HOLD_MS = 1400;
 
 export default function HorseRaceGame() {
   const participants = useGameStore((s) => s.participants);
@@ -36,9 +39,24 @@ export default function HorseRaceGame() {
   const [, forceRender] = useReducer((n) => n + 1, 0);
   const [photoFinish, setPhotoFinish] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
-  // 캐스터 캡션 — 게임 이벤트별 메시지 트리거
   const [caption, setCaption] = useState(null);
-  const captionFiredRef = useRef({ start: false, photo: false, dark: false, stun: false, ranks: new Set() });
+  const captionFiredRef = useRef({
+    start: false,
+    photo: false,
+    dark: false,
+    stun: false,
+    sleep: new Set(),
+    slip: new Set(),
+    snailBoost: new Set(),
+    // v2.3 positive quirk caption fired
+    wakeSprint: new Set(),
+    catchup: new Set(),
+    iceSlide: new Set(),
+    turbo: new Set(),
+    midBoost: new Set(),
+    treeRest: new Set(),
+    ranks: new Set(),
+  });
 
   useEffect(() => {
     if (participants.length < 2) return;
@@ -52,13 +70,11 @@ export default function HorseRaceGame() {
 
       let dtRaw = (now - lastTimeRef.current) / 1000;
       lastTimeRef.current = now;
-      if (dtRaw > 0.05) dtRaw = 0.05; // 백그라운드 탭 복귀 시 점프 방지
+      if (dtRaw > 0.05) dtRaw = 0.05;
 
-      // 결승선 임박 슬로우모션 (PRD §7.2) + v1.5 결승 ceremony
-      // 1등 통과 직전: 슬로우 / 1등 통과 후 2~3등 ceremony 동안에도 슬로우 유지
       const closest = state.horses.reduce((m, h) => Math.max(m, h.position), 0);
       const finishedCount = state.results.length;
-      const ceremonyTargetCount = Math.min(3, n);
+      const ceremonyTargetCount = Math.min(3, state.horses.length);
       const inCeremony = finishedCount >= 1 && finishedCount < ceremonyTargetCount;
       const approachingFirst = closest > 0.92 && finishedCount === 0;
       const wantSlow = approachingFirst || inCeremony;
@@ -67,14 +83,13 @@ export default function HorseRaceGame() {
 
       stepHorseRace(state, dtRaw * slowMoRef.current);
 
-      // 사진판정 트리거 (시각 페이크, PRD §7.3)
       if (!photoFinish && isPhotoFinish(state)) setPhotoFinish(true);
 
       // 캐스터 캡션 트리거
       const fired = captionFiredRef.current;
       if (!fired.start && state.elapsed > 0.3) {
         fired.start = true;
-        setCaption('🐎 출발!');
+        setCaption('🏁 출발!');
       }
       if (!fired.dark && state.darkhorse?.horseId) {
         fired.dark = true;
@@ -83,11 +98,54 @@ export default function HorseRaceGame() {
       if (!fired.stun && state.stun?.horseId) {
         fired.stun = true;
         const stunned = state.horses.find((h) => h.id === state.stun.horseId);
-        setCaption(`${stunned?.displayName ?? '말'} 휘청!`);
+        setCaption(`${stunned?.displayName ?? '주자'} 휘청!`);
       }
       if (!fired.photo && photoFinish) {
         fired.photo = true;
         setCaption('📸 사진판정!');
+      }
+      // v2.2 + v2.3 동물 quirk 캡션
+      for (const h of state.horses) {
+        if (h.rank !== null) continue;
+        const quirk = getQuirkState(state, h.id);
+        // negative
+        if (quirk.isSleeping && !fired.sleep.has(h.id)) {
+          fired.sleep.add(h.id);
+          setCaption(`💤 ${h.displayName} 잠들었다!`);
+        }
+        if (quirk.isSlipping && !fired.slip.has(h.id)) {
+          fired.slip.add(h.id);
+          setCaption(`💦 ${h.displayName} 미끄러졌다!`);
+        }
+        // positive
+        if (quirk.isSnailBoost && !fired.snailBoost.has(h.id)) {
+          fired.snailBoost.add(h.id);
+          setCaption(`🐌 ${h.displayName} 막판 폭주!`);
+        }
+        if (quirk.isWakeSprint && !fired.wakeSprint.has(h.id)) {
+          fired.wakeSprint.add(h.id);
+          setCaption(`🐰 ${h.displayName} 깜짝 놀라 달린다!`);
+        }
+        if (quirk.isCatchup && !fired.catchup.has(h.id)) {
+          fired.catchup.add(h.id);
+          setCaption(`🐢 ${h.displayName} 꾸준한 추격`);
+        }
+        if (quirk.isIceSlide && !fired.iceSlide.has(h.id)) {
+          fired.iceSlide.add(h.id);
+          setCaption(`❄️ ${h.displayName} 빙판 슬라이드!`);
+        }
+        if (quirk.isTurbo && !fired.turbo.has(h.id)) {
+          fired.turbo.add(h.id);
+          setCaption(`🐹 ${h.displayName} 휠 폭주!`);
+        }
+        if (quirk.isMidBoost && !fired.midBoost.has(h.id)) {
+          fired.midBoost.add(h.id);
+          setCaption(`🌟 ${h.displayName} 변신!`);
+        }
+        if (quirk.isTreeResting && !fired.treeRest.has(h.id)) {
+          fired.treeRest.add(h.id);
+          setCaption(`🦅 ${h.displayName} 잠시 쉬어간다`);
+        }
       }
       // 1·2·3등 통과 시 캡션
       for (const r of state.results) {
@@ -104,7 +162,6 @@ export default function HorseRaceGame() {
       } else if (!finishedRef.current) {
         finishedRef.current = true;
         setCelebrating(true);
-        // v1.5: 결승 ceremony — 메달 0.8초 정지 후 result 진입
         setTimeout(() => {
           finishGame(getHorseRaceRankings(state));
         }, FINISH_HOLD_MS);
@@ -115,12 +172,20 @@ export default function HorseRaceGame() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-    // participants는 진입 시점 1회만 사용. 재시작은 replayGame 흐름으로 처리.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const state = stateRef.current;
-  const horses = state?.horses ?? participants.map((p, i) => ({ ...p, lane: i, position: 0, rank: null }));
+  const horses =
+    state?.horses ??
+    participants.map((p, i) => ({
+      ...p,
+      lane: i,
+      position: 0,
+      rank: null,
+      species: 'rabbit',
+      speciesEmoji: '🐰',
+    }));
   const n = horses.length;
 
   return (
@@ -133,10 +198,12 @@ export default function HorseRaceGame() {
       {/* Header */}
       <div className="px-lg md:px-xxl pt-xl pb-md flex items-center justify-between">
         <div className="flex items-center gap-md">
-          <span className="text-[36px] leading-none" aria-hidden="true">🐎</span>
+          <span className="text-[36px] leading-none" aria-hidden="true">
+            🏁
+          </span>
           <div>
-            <h2 className="text-title-lg font-medium leading-tight">경주마</h2>
-            <p className="text-caption text-on-dark/50">Horse Race</p>
+            <h2 className="text-title-lg font-medium leading-tight">야생 더비</h2>
+            <p className="text-caption text-on-dark/50">Wild Derby</p>
           </div>
         </div>
         <div className="text-right">
@@ -158,7 +225,7 @@ export default function HorseRaceGame() {
         {/* 시작 라인 */}
         <div className="absolute top-0 bottom-0 left-[5%] w-[2px] bg-on-dark/30" />
 
-        {/* v2 V3 — 부스터 타일 (Coral 글로우 띠) */}
+        {/* 부스터 타일 */}
         {state?.boosters?.map((bx, idx) => {
           const xPct = 5 + bx * 90;
           return (
@@ -188,7 +255,40 @@ export default function HorseRaceGame() {
             </motion.div>
           );
         })}
-        {/* 결승선 — Gold 체커 */}
+
+        {/* v2.2 장애물 — 트랙 위에 🌳 또는 🪨 표시 */}
+        {state?.obstacles?.map((ox, idx) => {
+          const xPct = 5 + ox * 90;
+          // idx에 따라 🌳/🪨 번갈아
+          const obstacleEmoji = idx % 2 === 0 ? '🌳' : '🪨';
+          return (
+            <div
+              key={`obstacle-${idx}`}
+              className="absolute top-0 bottom-0 pointer-events-none flex flex-col items-center justify-around"
+              style={{
+                left: `${xPct}%`,
+                width: '24px',
+                transform: 'translateX(-50%)',
+              }}
+              aria-hidden="true"
+            >
+              {Array.from({ length: Math.min(n + 1, 6) }).map((_, j) => (
+                <span
+                  key={j}
+                  style={{
+                    fontSize: n <= 8 ? '18px' : '14px',
+                    filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.6))',
+                    opacity: 0.85,
+                  }}
+                >
+                  {obstacleEmoji}
+                </span>
+              ))}
+            </div>
+          );
+        })}
+
+        {/* 결승선 */}
         <div
           className="absolute top-0 bottom-0 right-[5%] w-[8px]"
           style={{
@@ -198,14 +298,14 @@ export default function HorseRaceGame() {
           }}
         />
 
-        {/* 레인별 horse */}
+        {/* 레인별 racer */}
         {horses.map((h, i) => {
           const laneTopPct = (i / n) * 100;
           const laneHeightPct = 100 / n;
           const xPct = 5 + h.position * 90;
           const isWinner = h.rank === 1;
           const labelFontSize = n <= 6 ? 13 : n <= 9 ? 12 : n <= 12 ? 11 : 10;
-          const horseFontSize =
+          const racerFontSize =
             n <= 4
               ? 'clamp(40px, 6vw, 64px)'
               : n <= 8
@@ -213,18 +313,37 @@ export default function HorseRaceGame() {
                   : n <= 12
                       ? 'clamp(24px, 4vw, 40px)'
                       : 'clamp(20px, 3.2vw, 32px)';
-          // v1.5 페이크 아웃 시각 상태
-          const fake = state ? getFakeOutState(state, h.id) : { isDarkhorse: false, isStunned: false };
-          // 막판 흔들림 — 페이크 추첨됐고 leader가 결승 5% 직전일 때만
+          const fake = state
+            ? getFakeOutState(state, h.id)
+            : { isDarkhorse: false, isStunned: false };
+          const quirk = state
+            ? getQuirkState(state, h.id)
+            : { isSleeping: false, isSlipping: false, isPaused: false, isSnailBoost: false };
+
+          // y축 모션 (eagle 비행 + wobble + slip)
+          const isEagle = h.species === 'eagle';
           const wobbleActive =
             state && isFinaleWobbleActive(state) && h.position > 0.95 && h.rank === null;
-          let wobble = '';
-          if (wobbleActive) {
-            wobble = `translateY(${Math.sin(state.elapsed * 22 + i) * 2}px)`;
-          } else if (fake.isStunned) {
-            // 스턴 — 좌우로 짧게 흔들 + 정지 (시각만)
-            wobble = `translateX(${Math.sin(state.elapsed * 30) * 1.5}px)`;
+          let yOffset = 0;
+          let xOffset = 0;
+          let rotate = 0;
+          if (isEagle && h.rank === null) {
+            yOffset = Math.sin(state ? state.elapsed * 4 + i : 0) * 14;
           }
+          if (wobbleActive) {
+            yOffset += Math.sin((state?.elapsed ?? 0) * 22 + i) * 2;
+          } else if (fake.isStunned) {
+            xOffset = Math.sin((state?.elapsed ?? 0) * 30) * 1.5;
+          }
+          if (quirk.isSlipping) {
+            rotate = Math.sin((state?.elapsed ?? 0) * 18) * 18;
+          } else if (quirk.isSleeping) {
+            rotate = -10; // 약간 기울어진 자세
+          }
+
+          // v2.3.1 — 메인 캐릭터는 참가자 본인 이모지 (FNV-1a 매핑).
+          // species 이모지는 라벨에 작게 표시해 식별 혼동을 줄임.
+          const mainEmoji = h.emoji ?? '🏁';
 
           return (
             <div
@@ -236,7 +355,6 @@ export default function HorseRaceGame() {
                 borderTop: i > 0 ? `1px dashed ${COLOR_LANE_LINE}` : 'none',
               }}
             >
-              {/* 레인 번호 */}
               <span
                 className="absolute left-md top-1/2 -translate-y-1/2 text-caption text-on-dark/40 select-none"
                 style={{ fontSize: '11px' }}
@@ -244,41 +362,109 @@ export default function HorseRaceGame() {
                 {i + 1}
               </span>
 
-              {/* 말 + 라벨 */}
               <div
                 className="absolute top-1/2"
                 style={{
                   left: `${xPct}%`,
-                  transform: `translate(-50%, -50%) ${wobble}`,
+                  transform: `translate(-50%, calc(-50% + ${yOffset}px)) translateX(${xOffset}px)`,
                 }}
               >
                 <div className="flex flex-col items-center relative">
                   {(() => {
                     const boosted = state ? isBoostActive(state, h.id) : false;
+                    // v2.3 — 모든 positive quirk을 Coral 글로우로 통일 (시각 일관성)
+                    const positiveActive =
+                      boosted ||
+                      quirk.isSnailBoost ||
+                      quirk.isWakeSprint ||
+                      quirk.isCatchup ||
+                      quirk.isIceSlide ||
+                      quirk.isTurbo ||
+                      quirk.isMidBoost;
+                    let filter = 'none';
+                    if (isWinner && celebrating) {
+                      filter = `drop-shadow(0 0 18px ${COLOR_GOLD})`;
+                    } else if (positiveActive) {
+                      filter = `drop-shadow(0 0 18px ${COLOR_CORAL})`;
+                    } else if (fake.isDarkhorse) {
+                      filter = `drop-shadow(0 0 12px ${COLOR_CORAL})`;
+                    }
                     return (
                       <div
                         className="leading-none select-none"
                         style={{
-                          fontSize: horseFontSize,
-                          filter:
-                            isWinner && celebrating
-                              ? `drop-shadow(0 0 18px ${COLOR_GOLD})`
-                              : boosted
-                                  ? `drop-shadow(0 0 18px ${COLOR_CORAL})`
-                                  : fake.isDarkhorse
-                                      ? `drop-shadow(0 0 12px ${COLOR_CORAL})`
-                                      : 'none',
+                          fontSize: racerFontSize,
+                          filter,
                           transition: 'filter 0.3s ease-out, transform 0.2s ease-out',
-                          transform: boosted ? 'scale(1.15)' : 'scale(1)',
-                          opacity: fake.isStunned ? 0.7 : 1,
+                          transform: `${
+                            positiveActive ? 'scale(1.15)' : 'scale(1)'
+                          } rotate(${rotate}deg)`,
+                          opacity:
+                            fake.isStunned || quirk.isSleeping || quirk.isTreeResting
+                              ? 0.7
+                              : 1,
                         }}
                         aria-hidden="true"
                       >
-                        🐎
+                        {mainEmoji}
                       </div>
                     );
                   })()}
-                  {/* v1.5 다크호스 배지 */}
+                  {/* 동물 quirk 마커 */}
+                  {quirk.isSleeping && (
+                    <motion.div
+                      className="absolute -top-md left-1/2 -translate-x-1/2"
+                      style={{ fontSize: '14px' }}
+                      animate={{ y: [0, -3, 0], opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 0.9, repeat: Infinity }}
+                    >
+                      💤
+                    </motion.div>
+                  )}
+                  {quirk.isSlipping && (
+                    <div
+                      className="absolute -top-md left-1/2 -translate-x-1/2"
+                      style={{ fontSize: '14px' }}
+                    >
+                      💦
+                    </div>
+                  )}
+                  {/* v2.3 positive quirk 마커 */}
+                  {quirk.isIceSlide && (
+                    <div
+                      className="absolute -top-md left-1/2 -translate-x-1/2"
+                      style={{ fontSize: '14px' }}
+                    >
+                      ❄️
+                    </div>
+                  )}
+                  {quirk.isTurbo && (
+                    <div
+                      className="absolute -top-md left-1/2 -translate-x-1/2"
+                      style={{ fontSize: '14px' }}
+                    >
+                      ⚡
+                    </div>
+                  )}
+                  {quirk.isMidBoost && (
+                    <div
+                      className="absolute -top-md left-1/2 -translate-x-1/2"
+                      style={{ fontSize: '14px' }}
+                    >
+                      🌟
+                    </div>
+                  )}
+                  {quirk.isTreeResting && (
+                    <motion.div
+                      className="absolute -top-md left-1/2 -translate-x-1/2"
+                      style={{ fontSize: '14px' }}
+                      animate={{ y: [0, -2, 0], opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 0.5, repeat: Infinity }}
+                    >
+                      🍃
+                    </motion.div>
+                  )}
+                  {/* 다크호스 배지 */}
                   {fake.isDarkhorse && (
                     <div
                       className="absolute -top-md left-1/2 -translate-x-1/2 px-xs py-xxs rounded-full whitespace-nowrap text-on-dark font-medium"
@@ -291,7 +477,7 @@ export default function HorseRaceGame() {
                       🌟 DARK HORSE
                     </div>
                   )}
-                  {/* v1.5 스턴 마커 — 회전 ⭐ */}
+                  {/* 스턴 마커 */}
                   {fake.isStunned && (
                     <motion.div
                       className="absolute -top-md left-1/2 -translate-x-1/2"
@@ -311,7 +497,8 @@ export default function HorseRaceGame() {
                       lineHeight: 1.3,
                     }}
                   >
-                    {h.emoji} {h.displayName}
+                    {/* v2.3.1 — 라벨에 species emoji + 이름 (메인은 참가자 이모지) */}
+                    {h.speciesEmoji ?? ''} {h.displayName}
                   </div>
                 </div>
                 {h.rank !== null && (
@@ -345,7 +532,7 @@ export default function HorseRaceGame() {
         )}
       </div>
 
-      {/* v2 V1+V4 — 시네마틱 follow-leader PIP. 게임 50% 시점부터 우상단에 등장. */}
+      {/* 시네마틱 follow-leader PIP */}
       {state &&
         !state.finished &&
         state.elapsed > 4 &&
@@ -354,8 +541,9 @@ export default function HorseRaceGame() {
           if (aliveHorses.length === 0) return null;
           const leader = aliveHorses.reduce((a, b) => (a.position >= b.position ? a : b));
           const closest = leader.position;
-          // closest > 0.45 일 때만 노출 (전반 정적인 구간 제외)
           if (closest < 0.45) return null;
+          const speciesLabel =
+            SPECIES_PROPS[leader.species]?.label ?? '주자';
           return (
             <motion.div
               key={leader.id}
@@ -373,14 +561,14 @@ export default function HorseRaceGame() {
               }}
             >
               <span className="text-[40px] leading-none" aria-hidden="true">
-                🐎
+                {leader.emoji ?? '🏁'}
               </span>
               <div className="flex flex-col">
                 <span className="text-caption" style={{ color: COLOR_GOLD }}>
-                  🎥 LEADER
+                  🎥 LEADER · {leader.speciesEmoji ?? ''} {speciesLabel}
                 </span>
                 <span className="text-on-dark text-body-md font-medium">
-                  {leader.emoji} {leader.displayName}
+                  {leader.displayName}
                 </span>
                 <span className="text-caption text-on-dark/60">
                   진행 {Math.round(closest * 100)}%
@@ -390,7 +578,7 @@ export default function HorseRaceGame() {
           );
         })()}
 
-      {/* v1.5 캐스터 캡션 */}
+      {/* 캐스터 캡션 */}
       <CasterCaption message={caption} />
     </motion.div>
   );
