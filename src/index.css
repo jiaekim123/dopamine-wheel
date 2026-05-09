@@ -1,7 +1,8 @@
-/* PRD §10.3 — Pretendard 한국어/라틴 통일 + Press Start 2P (결과 전광판) */
-/* Variable font 단일 파일을 사용해 산출물 크기를 줄임. PRD 지원 브라우저(§2.3)는 모두 가변 폰트 지원. */
-/* Press Start 2P는 Phase 5 결과 전광판에서 추가 예정. */
+/* PRD §10.3 — Pretendard 한국어/라틴 통일 + Press Start 2P (결과 전광판 / 폭탄 디지털 타이머) */
+/* 모두 self-host. Pretendard는 variable, Press Start 2P는 @fontsource. */
 @import 'pretendard/dist/web/variable/pretendardvariable.css';
+/* 영문 숫자만 사용하므로 latin subset만 import (CSS 사이즈 절감) */
+@import '@fontsource/press-start-2p/latin-400.css';
 
 @tailwind base;
 @tailwind components;

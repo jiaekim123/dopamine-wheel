@@ -13,7 +13,7 @@ export default function HomeScreen() {
     <div className="min-h-screen bg-canvas text-ink">
       {/* Top bar — sticky, hairline 보더 (PRD §6.2) */}
       <header className="sticky top-0 z-30 h-16 bg-canvas border-b border-hairline">
-        <div className="max-w-[1280px] mx-auto h-full px-xxl flex items-center justify-between">
+        <div className="max-w-[1280px] mx-auto h-full px-lg md:px-xxl flex items-center justify-between">
           <div className="flex items-baseline gap-md">
             <span className="text-title-lg" aria-hidden="true">
               🎡
@@ -33,18 +33,18 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      <main className="max-w-[1280px] mx-auto px-xxl">
-        <section className="pt-section flex flex-col gap-xl">
+      <main className="max-w-[1280px] mx-auto px-lg md:px-xxl">
+        <section className="pt-xxl md:pt-section flex flex-col gap-xl">
           <ParticipantsInput />
           <EmojiChips />
         </section>
 
-        <section className="pt-section flex flex-col gap-xl">
+        <section className="pt-xxl md:pt-section flex flex-col gap-xl">
           <KCounter />
           <WinnerModeSelector />
         </section>
 
-        <section className="pt-section pb-section">
+        <section className="pt-xxl md:pt-section pb-xxl md:pb-section">
           <GameCardGrid />
         </section>
       </main>

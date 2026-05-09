@@ -44,7 +44,7 @@ export default function GameCardGrid() {
         role="list"
       >
         {GAMES.map((game) => (
-          <div role="listitem" key={game.id}>
+          <div role="listitem" key={game.id} className="h-full">
             <GameCard game={game} />
           </div>
         ))}

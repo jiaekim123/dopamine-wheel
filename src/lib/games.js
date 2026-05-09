@@ -9,7 +9,8 @@ export const GAMES = [
     nameEn: 'Horse Race',
     description: '결승선까지 매 프레임 가속도 추첨',
     minPlayers: 2,
-    maxPlayers: 12,
+    // v2 V4: 시네마틱 카메라(선두 PIP) 도입으로 16명까지 확장
+    maxPlayers: 16,
     durationSec: [12, 20],
     // 시그니처 컬러 (Tailwind class 직접 매칭용)
     bg: 'bg-signature-coral',
@@ -48,18 +49,20 @@ export const GAMES = [
   },
   {
     id: 'roulette',
-    emoji: '🔴',
-    name: '물리 룰렛',
-    nameEn: 'Physics Roulette',
+    emoji: '🪂',
+    name: '운명의 낙하',
+    nameEn: 'Falling Fate',
     description: '못 사이로 떨어지는 공, 칸 추출',
     minPlayers: 2,
-    maxPlayers: 50,
+    // v1.5: 권장 35명, 50명까지 가능 (권장 초과 시 경고 배지)
+    maxPlayers: 35,
+    hardMaxPlayers: 50,
     durationSec: [15, 30],
     bg: 'bg-signature-mustard',
-    // Mustard는 밝은 배경 → ink 텍스트 (PRD §6.6)
-    text: 'text-ink',
+    // v1.4.1: 다크 머스타드(#946d12) → on-dark 텍스트 (WCAG AA 통과)
+    text: 'text-on-dark',
     glow: 'shadow-glow-mustard',
-    hoverFx: 'hover:brightness-95',
+    hoverFx: 'hover:brightness-125',
   },
 ];
 

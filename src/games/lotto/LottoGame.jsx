@@ -13,6 +13,7 @@ import {
   CHAMBER,
 } from './simulation.js';
 import { ACCENTS } from '../../lib/theme.js';
+import CasterCaption from '../../components/CasterCaption.jsx';
 
 const COLOR_FOREST = '#0a2e0e';
 const COLOR_FOREST_GLOW = 'rgba(10, 46, 14, 0.8)';
@@ -25,7 +26,7 @@ const BALL_PALETTE = [
   '#fcab79', // peach
   '#a8d8c4', // mint
   '#f4d35e', // yellow
-  '#d9a441', // mustard
+  '#946d12', // mustard
   '#f5e9d4', // cream
 ];
 function ballColor(i) {
@@ -51,6 +52,14 @@ export default function LottoGame() {
 
   const [, forceRender] = useReducer((n) => n + 1, 0);
   const [celebrating, setCelebrating] = useState(false);
+  // warmup → extracting 전환 플래시 트리거 (PIP 클로즈업은 사용자 피드백으로 제거)
+  const prevPhaseRef = useRef('warmup');
+  const [extractingFlash, setExtractingFlash] = useState(false);
+  // v1.5 캐스터 캡션
+  const [caption, setCaption] = useState(null);
+  const lastResultLenRef = useRef(0);
+  // v2 V5 — vortex 트리거 감지
+  const vortexFiredRef = useRef(false);
 
   useEffect(() => {
     if (participants.length < 2) return;
@@ -65,25 +74,48 @@ export default function LottoGame() {
       lastTimeRef.current = now;
       if (dtRaw > 0.05) dtRaw = 0.05;
 
-      // 추출 임박 슬로우모션: 튜브 안에 공이 있고 추출 라인 직전일 때
+      // 추출 임박 슬로우모션 — extracting 단계에서만, 튜브 안 공이 있을 때
       let inTube = false;
-      for (const entry of state.ballsByLabel.values()) {
-        if (entry.extracted) continue;
-        const { x, y } = entry.body.position;
-        // 튜브 폭 안 + 챔버 하단~추출 라인 직전
-        if (
-          Math.abs(x - CHAMBER.cx) < CHAMBER.tubeHalfWidth &&
-          y > CHAMBER.tubeYTop &&
-          y < CHAMBER.extractY
-        ) {
-          inTube = true;
-          break;
+      if (state.phase === 'extracting') {
+        for (const entry of state.ballsByLabel.values()) {
+          if (entry.extracted) continue;
+          const { x, y } = entry.body.position;
+          if (
+            Math.abs(x - CHAMBER.cx) < CHAMBER.tubeHalfWidth &&
+            y > CHAMBER.tubeYTop &&
+            y < CHAMBER.extractY
+          ) {
+            inTube = true;
+            break;
+          }
         }
       }
       const targetSlow = inTube ? 0.45 : 1.0;
       slowMoRef.current += (targetSlow - slowMoRef.current) * Math.min(1, dtRaw * 6);
 
       stepLotto(state, dtRaw * slowMoRef.current);
+
+      // phase 전환 감지 — warmup → extracting 시 0.3초 흰색 플래시 + 캡션
+      if (prevPhaseRef.current === 'warmup' && state.phase === 'extracting') {
+        setExtractingFlash(true);
+        setTimeout(() => setExtractingFlash(false), 320);
+        setCaption('🎱 추첨 시작!');
+      }
+      prevPhaseRef.current = state.phase;
+
+      // 첫 공 추출 + 새 추출 시 캡션
+      if (state.results.length > lastResultLenRef.current) {
+        const newest = state.results[state.results.length - 1];
+        setCaption(`${newest.rank}등 — ${newest.participant.displayName}`);
+        lastResultLenRef.current = state.results.length;
+      }
+
+      // v2 V5 — vortex 트리거 시 캡션
+      if (state.vortex.startedAt && !vortexFiredRef.current) {
+        vortexFiredRef.current = true;
+        setCaption('🌀 격렬한 추첨!');
+      }
+
       forceRender();
 
       if (!state.finished) {
@@ -135,13 +167,30 @@ export default function LottoGame() {
       className="fixed inset-0 z-40 bg-dark-base text-on-dark overflow-hidden flex flex-col"
     >
       {/* Header */}
-      <div className="px-xxl pt-xl pb-md flex items-center justify-between">
+      <div className="px-lg md:px-xxl pt-xl pb-md flex items-center justify-between">
         <div className="flex items-center gap-md">
           <span className="text-[36px] leading-none" aria-hidden="true">🎱</span>
           <div>
             <h2 className="text-title-lg font-medium leading-tight">럭키 로또</h2>
             <p className="text-caption text-on-dark/50">Lucky Lotto</p>
           </div>
+          {/* Phase 배지 (v1.5) */}
+          {state?.phase === 'warmup' && (
+            <span
+              className="ml-md px-sm py-xxs rounded-full text-caption font-medium"
+              style={{ backgroundColor: 'rgba(31, 122, 58, 0.25)', color: '#7fcfa3', border: '1px solid #1f7a3a' }}
+            >
+              🌪 휘젓는 중
+            </span>
+          )}
+          {state?.phase === 'extracting' && (
+            <span
+              className="ml-md px-sm py-xxs rounded-full text-caption font-medium"
+              style={{ backgroundColor: COLOR_FOREST, color: '#ffffff' }}
+            >
+              🎱 추출 중
+            </span>
+          )}
         </div>
         <div className="text-right">
           <p className="text-caption text-on-dark/50">
@@ -153,7 +202,32 @@ export default function LottoGame() {
         </div>
       </div>
 
-      <div className="flex-1 flex gap-xl px-xxl pb-xxl min-h-0">
+      {/* warmup → extracting 플래시 */}
+      {extractingFlash && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.55, 0] }}
+          transition={{ duration: 0.32 }}
+          className="absolute inset-0 bg-white pointer-events-none z-10"
+        />
+      )}
+
+      {/* v2 V5 — vortex 진행 중 화면 펄스 (Forest 글로우 강화) */}
+      {state?.vortex?.startedAt &&
+        !state.vortex.finished &&
+        state.elapsed < state.vortex.startedAt + state.vortex.duration && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.5, 0] }}
+            transition={{ duration: state.vortex.duration }}
+            style={{
+              background: `radial-gradient(circle at center, rgba(31, 122, 58, 0.45) 0%, transparent 60%)`,
+            }}
+          />
+        )}
+
+      <div className="flex-1 flex gap-xl px-lg md:px-xxl pb-xxl min-h-0">
         {/* Chamber + tube SVG */}
         <div className="relative flex-1 min-w-0">
           <svg
@@ -235,10 +309,10 @@ export default function LottoGame() {
                     strokeWidth={1.5}
                   />
                   <text
-                    y={-2}
+                    y={-CHAMBER.ballRadius * 0.18}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={CHAMBER.ballRadius * 0.95}
+                    fontSize={CHAMBER.ballRadius * 1.0}
                     style={{ userSelect: 'none' }}
                   >
                     {b.emoji}
@@ -247,12 +321,12 @@ export default function LottoGame() {
                     y={CHAMBER.ballRadius * 0.55}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={9}
+                    fontSize={Math.round(CHAMBER.ballRadius * 0.45)}
                     fontWeight={500}
                     fill={textC}
                     style={{ userSelect: 'none' }}
                   >
-                    {b.displayName.length > 5 ? b.displayName.slice(0, 4) + '…' : b.displayName}
+                    {b.displayName.length > 7 ? b.displayName.slice(0, 6) + '…' : b.displayName}
                   </text>
                 </g>
               );
@@ -266,7 +340,10 @@ export default function LottoGame() {
             추출 순서
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto pr-xxs flex flex-col gap-xs">
-            {extracted.length === 0 && (
+            {extracted.length === 0 && state?.phase === 'warmup' && (
+              <p className="text-body-md text-on-dark/40">🌪 공이 충분히 섞이는 중…</p>
+            )}
+            {extracted.length === 0 && state?.phase === 'extracting' && (
               <p className="text-body-md text-on-dark/40">곧 첫 공이 나옵니다…</p>
             )}
             {extracted.map((entry, idx) => {
@@ -317,6 +394,9 @@ export default function LottoGame() {
           )}
         </div>
       </div>
+
+      {/* v1.5 캐스터 캡션 */}
+      <CasterCaption message={caption} />
     </motion.div>
   );
 }

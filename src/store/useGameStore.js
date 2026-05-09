@@ -168,6 +168,20 @@ export const useGameStore = create((set, get) => ({
   setSelectedGame: (game) => set({ selectedGame: game }),
   setGameResult: (result) => set({ gameResult: result }),
 
+  // PRD §5.3 — Dopamine → Editorial 전환을 위한 흰색 페이드 (0.6s).
+  // action을 받아 전반 0.3s 페이드인 후 action 실행, 다시 0.3s 페이드아웃.
+  transitionWhite: false,
+  fadeToHome: (action) => {
+    set({ transitionWhite: true });
+    setTimeout(() => {
+      try {
+        action();
+      } finally {
+        setTimeout(() => set({ transitionWhite: false }), 300);
+      }
+    }, 300);
+  },
+
   // 테스트/긴급 저장용 — debounce를 우회해 즉시 localStorage에 반영.
   flushPersist: () => savePersisted(get()),
 
@@ -201,12 +215,6 @@ export const useGameStore = create((set, get) => ({
       return;
     }
     set({ gameResult: null, screen: 'intro' });
-  },
-
-  // "처음으로": 참가자·옵션 모두 리셋.
-  resetParticipants: () => {
-    set({ ...DEFAULT_STATE });
-    persistDebounced(get());
   },
 
   // 게임 시작 가능 여부 (PRD §6.6 + v1.4 자유 입력 검증)

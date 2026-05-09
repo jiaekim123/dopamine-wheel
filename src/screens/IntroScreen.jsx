@@ -39,9 +39,15 @@ export default function IntroScreen() {
     return () => timers.forEach(clearTimeout);
   }, [setScreen]);
 
-  const bgColor = phase === 'sig' ? sig : '#0d1218';
-  const bgOpacity = phase === 'sig' ? 0.85 : 1;
+  // v1.5 PRD §7.1.1 — 폭탄은 시그니처 컬러 = #181d26 ≈ 다크 베이스이므로
+  // 별도 Coral 글로우 + 도화선 보강 레이어를 적용.
+  const isBomb = selectedGame === 'bomb';
+  const bgColor = phase === 'sig' && !isBomb ? sig : '#0d1218';
+  const bgOpacity = phase === 'sig' && !isBomb ? 0.85 : 1;
   const isCount = phase === '3' || phase === '2' || phase === '1';
+  // 폭탄 특수 레이어 표시 단계
+  const showBombIntro = isBomb && (phase === 'sig' || phase === 'dark');
+  const bombGlowOpacity = isBomb && phase === 'sig' ? 0.85 : 0;
 
   return (
     <div className="fixed inset-0 z-40 overflow-hidden" aria-live="assertive">
@@ -52,6 +58,54 @@ export default function IntroScreen() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         style={{ backgroundColor: bgColor }}
       />
+
+      {/* v1.5 §7.1.1 — 폭탄 인트로 보강: Coral 글로우 + 큰 도화선 불꽃 */}
+      {showBombIntro && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: bombGlowOpacity }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{
+            background:
+              'radial-gradient(circle at center, rgba(170, 45, 0, 0.55) 0%, rgba(170, 45, 0, 0.18) 35%, transparent 70%)',
+          }}
+        >
+          <div className="flex flex-col items-center">
+            {/* 큰 도화선 + 불꽃 — sig 단계에서 등장, dark에서 짧아짐 */}
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: phase === 'sig' ? 80 : 20 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="relative"
+              style={{ width: '4px', backgroundColor: '#aa2d00' }}
+            >
+              <motion.div
+                className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full"
+                style={{
+                  width: '14px',
+                  height: '14px',
+                  backgroundColor: '#ffd700',
+                  filter: 'drop-shadow(0 0 16px #ffd700)',
+                }}
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 0.4, repeat: Infinity }}
+              />
+            </motion.div>
+            {/* 폭탄 본체 */}
+            <div
+              className="leading-none mt-xs"
+              style={{
+                fontSize: 'clamp(96px, 18vw, 240px)',
+                filter: 'drop-shadow(0 0 32px rgba(170, 45, 0, 0.8))',
+              }}
+              aria-hidden="true"
+            >
+              💣
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="relative z-10 h-full flex items-center justify-center px-xxl">
         <AnimatePresence mode="popLayout">

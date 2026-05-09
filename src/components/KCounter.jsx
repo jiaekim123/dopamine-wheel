@@ -36,7 +36,7 @@ export default function KCounter() {
           </button>
           <span
             className={`min-w-12 text-center text-title-md font-medium tabular-nums ${
-              warning ? 'text-amber' : 'text-ink'
+              warning ? 'text-danger' : 'text-ink'
             }`}
             aria-live="polite"
           >
@@ -53,11 +53,7 @@ export default function KCounter() {
         </div>
       </div>
       {warning && (
-        <p
-          className="mt-xs text-caption text-amber"
-          role="alert"
-          style={{ color: '#d92d20' }}
-        >
+        <p className="mt-xs text-caption text-danger font-medium" role="alert">
           ⚠ {warning}
         </p>
       )}

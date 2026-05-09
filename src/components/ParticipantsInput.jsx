@@ -24,7 +24,9 @@ export default function ParticipantsInput() {
         id="participants-textarea"
         value={rawInput}
         onChange={(e) => setRawInput(e.target.value)}
-        placeholder="쉼표·줄바꿈·공백으로 구분 (예: 김철수, 이영희\n박민수 정수진)"
+        placeholder={`쉼표·줄바꿈·공백으로 구분
+예) 김철수, 이영희
+    박민수 정수진`}
         rows={4}
         className="w-full px-md py-sm rounded-sm border border-hairline bg-canvas text-body-md text-ink placeholder:text-muted focus:outline-none focus:border-info-border focus:shadow-focus-ring transition-colors"
         aria-describedby="participants-meta"

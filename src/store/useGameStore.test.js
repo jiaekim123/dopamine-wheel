@@ -1,7 +1,7 @@
 // Zustand 스토어 통합 동작 검증
 // - localStorage 저장/복원 (PRD §11 Phase 1 검증 포인트)
 // - winnerMode 변경 시 직접 입력 재검증
-// - resetForReplay / resetParticipants
+// - resetForReplay
 // v1.4: 연출 강도 토글 제거. k는 자유 입력 (clamp 없음). isGameStartable에서 차단.
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -131,13 +131,22 @@ describe('useGameStore', () => {
     expect(parsed.motionLevel).toBeUndefined();
   });
 
-  it('resetParticipants clears participants and options', () => {
+  // v1.5.1: "처음으로" 액션이 resetForReplay로 통일 → 게임 상태만 리셋, 참가자·k·모드·순위 모두 유지.
+  it('resetForReplay only clears gameResult/selectedGame/screen, preserves all options', () => {
     const s = useGameStore.getState();
     s.setRawInput('a, b, c');
     s.setWinnerCount(2);
-    s.resetParticipants();
+    s.setWinnerMode('last');
+    s.resetForReplay();
     const after = useGameStore.getState();
-    expect(after.participants.length).toBe(0);
-    expect(after.winnerCount).toBe(1);
+    // 참가자 + 옵션 모두 그대로
+    expect(after.participants.length).toBe(3);
+    expect(after.rawInput).toBe('a, b, c');
+    expect(after.winnerCount).toBe(2);
+    expect(after.winnerMode).toBe('last');
+    // 게임 상태만 초기화
+    expect(after.gameResult).toBeNull();
+    expect(after.selectedGame).toBeNull();
+    expect(after.screen).toBe('home');
   });
 });

@@ -28,7 +28,7 @@ export default function GameCard({ game }) {
       aria-label={`${game.name} — ${game.description}`}
       className={[
         'relative flex flex-col items-start text-left',
-        'p-xxl rounded-lg',
+        'h-full w-full p-xl md:p-xxl rounded-lg',
         'transition-[transform,filter] duration-200 ease-system',
         game.bg,
         game.text,

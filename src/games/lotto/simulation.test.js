@@ -51,7 +51,8 @@ describe('lotto simulation', () => {
 
   it('handles n=30 (max for lotto)', () => {
     const state = createLotto(buildParticipants(30));
-    runToFinish(state, 60);
+    // v1.5 부력감 강화로 warmup 최대 10s + extracting 시간이 늘어 80s 여유 확보
+    runToFinish(state, 80);
     expect(state.finished).toBe(true);
     expect(getLottoRankings(state)).toHaveLength(30);
   });
@@ -61,6 +62,41 @@ describe('lotto simulation', () => {
     runToFinish(state);
     expect(state.finished).toBe(true);
     expect(getLottoRankings(state)).toHaveLength(2);
+  });
+
+  it('warmup phase starts with phase=warmup and 0 results', () => {
+    const state = createLotto(buildParticipants(6));
+    // warmup 시작 직후
+    stepLotto(state, 0.5);
+    expect(state.phase).toBe('warmup');
+    expect(state.results).toHaveLength(0);
+    expect(state.gate).toBeTruthy();
+  });
+
+  it('warmupDuration is in [3, 10] range and deterministic with seed', () => {
+    const sA = createLotto(buildParticipants(5));
+    expect(sA.warmupDuration).toBeGreaterThanOrEqual(3);
+    expect(sA.warmupDuration).toBeLessThanOrEqual(10);
+
+    __setTestSeed(7);
+    const sB = createLotto(buildParticipants(5));
+    expect(sB.warmupDuration).toBe(sA.warmupDuration);
+  });
+
+  it('phase transitions warmup → extracting after warmupDuration', () => {
+    const state = createLotto(buildParticipants(4));
+    const warmup = state.warmupDuration;
+    // warmup 직전까지는 추출 0건 + warmup 단계
+    for (let t = 0; t < warmup - FIXED_DT; t += FIXED_DT) {
+      stepLotto(state, FIXED_DT);
+    }
+    expect(state.phase).toBe('warmup');
+    expect(state.results).toHaveLength(0);
+
+    // warmup 통과 시점 이후 게이트 제거되고 extracting으로 전환
+    stepLotto(state, FIXED_DT * 2);
+    expect(state.phase).toBe('extracting');
+    expect(state.gate).toBeNull();
   });
 
   it('same seed produces same rankings (Step-based Random 결정성)', () => {

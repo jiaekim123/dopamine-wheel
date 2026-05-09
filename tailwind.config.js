@@ -97,7 +97,7 @@ export default {
         'signature-coral': '#aa2d00',
         'signature-forest': '#0a2e0e',
         'surface-dark': '#181d26',
-        'signature-mustard': '#d9a441',
+        'signature-mustard': '#946d12',
 
         // Accent surfaces
         'signature-peach': '#fcab79',
@@ -118,6 +118,8 @@ export default {
         silver: '#c0c0c0',
         bronze: '#cd7f32',
         amber: '#ff8c00',
+        // 범위 초과 등 경고용 빨강 (PRD v1.4 — k 자유 입력 시 빨간 경고)
+        danger: '#d92d20',
       },
 
       // §10.3 Typography
@@ -157,7 +159,7 @@ export default {
         // Editorial Mode는 그림자 없음. Dopamine Mode 한정 글로우만.
         'glow-coral': '0 0 24px rgba(170, 45, 0, 0.5)',
         'glow-forest': '0 0 24px rgba(10, 46, 14, 0.5)',
-        'glow-mustard': '0 0 24px rgba(217, 164, 65, 0.5)',
+        'glow-mustard': '0 0 24px rgba(148, 109, 18, 0.6)',
         'focus-ring': '0 0 0 2px #458fff',
       },
 

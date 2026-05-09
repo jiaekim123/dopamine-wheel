@@ -5,7 +5,7 @@ export const SIGNATURE_BY_GAME = {
   horse: '#aa2d00', // signature-coral
   lotto: '#0a2e0e', // signature-forest
   bomb: '#181d26', // surface-dark
-  roulette: '#d9a441', // signature-mustard
+  roulette: '#946d12', // signature-mustard (v1.4.1: AA-safe darker mustard)
 };
 
 // PRD §10.2 보조 팔레트 — 결과 박스 보조 톤, 컨페티, 이모지 칩 등에 사용.
@@ -15,7 +15,7 @@ export const ACCENTS = ['#fcab79', '#a8d8c4', '#f4d35e', '#f5e9d4'];
 export const CONFETTI_PALETTE = [
   '#aa2d00', // coral
   '#0a2e0e', // forest
-  '#d9a441', // mustard
+  '#946d12', // mustard
   '#fcab79', // peach
   '#a8d8c4', // mint
   '#f4d35e', // yellow
@@ -23,7 +23,7 @@ export const CONFETTI_PALETTE = [
 ];
 
 // 밝은 배경(보조 톤 일부 + mustard) 위에서는 ink 텍스트, 그 외에는 화이트.
-const LIGHT_BACKGROUNDS = new Set(['#d9a441', '#fcab79', '#f4d35e', '#f5e9d4', '#a8d8c4']);
+const LIGHT_BACKGROUNDS = new Set(['#fcab79', '#f4d35e', '#f5e9d4', '#a8d8c4']);
 
 export function textOnBg(bg) {
   return LIGHT_BACKGROUNDS.has(bg) ? '#181d26' : '#ffffff';
