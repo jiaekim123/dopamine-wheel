@@ -50,6 +50,20 @@ export default function HorseRaceGame() {
   const [photoFinish, setPhotoFinish] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [caption, setCaption] = useState(null);
+  // 말풍선: { horseId: text } — 각 horse 위 1.5초 떠있는 한 줄. quirk·rank 등 per-horse 이벤트 노출.
+  const [bubbles, setBubbles] = useState({});
+  const bubbleTimers = useRef({});
+  const showBubble = (horseId, text, ms = 1500) => {
+    setBubbles((prev) => ({ ...prev, [horseId]: text }));
+    if (bubbleTimers.current[horseId]) clearTimeout(bubbleTimers.current[horseId]);
+    bubbleTimers.current[horseId] = setTimeout(() => {
+      setBubbles((prev) => {
+        const { [horseId]: _, ...rest } = prev;
+        return rest;
+      });
+      delete bubbleTimers.current[horseId];
+    }, ms);
+  };
   const captionFiredRef = useRef({
     start: false,
     photo: false,
@@ -111,73 +125,71 @@ export default function HorseRaceGame() {
 
       if (!photoFinish && isPhotoFinish(state)) setPhotoFinish(true);
 
-      // 캐스터 캡션 트리거
+      // 캐스터 캡션 — 글로벌 이벤트(출발/사진판정)만. per-horse 이벤트는 말풍선으로 분리.
       const fired = captionFiredRef.current;
       if (!fired.start && state.elapsed > 0.3) {
         fired.start = true;
         setCaption('🏁 출발!');
       }
-      if (!fired.dark && state.darkhorse?.horseId) {
-        fired.dark = true;
-        setCaption('🌟 다크호스 등장!');
-      }
-      if (!fired.stun && state.stun?.horseId) {
-        fired.stun = true;
-        const stunned = state.horses.find((h) => h.id === state.stun.horseId);
-        setCaption(`${stunned?.displayName ?? '주자'} 휘청!`);
-      }
       if (!fired.photo && photoFinish) {
         fired.photo = true;
         setCaption('📸 사진판정!');
       }
-      // v2.2 + v2.3 동물 quirk 캡션
+      // per-horse 이벤트 → 해당 horse 위 말풍선
+      if (!fired.dark && state.darkhorse?.horseId) {
+        fired.dark = true;
+        showBubble(state.darkhorse.horseId, '🌟 다크호스!');
+      }
+      if (!fired.stun && state.stun?.horseId) {
+        fired.stun = true;
+        showBubble(state.stun.horseId, '💢 휘청!');
+      }
+      // v2.2 + v2.3 동물 quirk 말풍선
       for (const h of state.horses) {
         if (h.rank !== null) continue;
         const quirk = getQuirkState(state, h.id);
-        // negative
         if (quirk.isSleeping && !fired.sleep.has(h.id)) {
           fired.sleep.add(h.id);
-          setCaption(`💤 ${h.displayName} 잠들었다!`);
+          showBubble(h.id, '💤 잠들었다!');
         }
         if (quirk.isSlipping && !fired.slip.has(h.id)) {
           fired.slip.add(h.id);
-          setCaption(`💦 ${h.displayName} 미끄러졌다!`);
+          showBubble(h.id, '💦 미끄러졌다!');
         }
-        // positive
         if (quirk.isSnailBoost && !fired.snailBoost.has(h.id)) {
           fired.snailBoost.add(h.id);
-          setCaption(`🐌 ${h.displayName} 막판 폭주!`);
+          showBubble(h.id, '🐌 막판 폭주!');
         }
         if (quirk.isWakeSprint && !fired.wakeSprint.has(h.id)) {
           fired.wakeSprint.add(h.id);
-          setCaption(`🐰 ${h.displayName} 깜짝 놀라 달린다!`);
+          showBubble(h.id, '🐰 깜짝 질주!');
         }
         if (quirk.isCatchup && !fired.catchup.has(h.id)) {
           fired.catchup.add(h.id);
-          setCaption(`🐢 ${h.displayName} 꾸준한 추격`);
+          showBubble(h.id, '🐢 꾸준한 추격');
         }
         if (quirk.isIceSlide && !fired.iceSlide.has(h.id)) {
           fired.iceSlide.add(h.id);
-          setCaption(`❄️ ${h.displayName} 빙판 슬라이드!`);
+          showBubble(h.id, '❄️ 빙판 슬라이드!');
         }
         if (quirk.isTurbo && !fired.turbo.has(h.id)) {
           fired.turbo.add(h.id);
-          setCaption(`🐹 ${h.displayName} 휠 폭주!`);
+          showBubble(h.id, '🐹 휠 폭주!');
         }
         if (quirk.isMidBoost && !fired.midBoost.has(h.id)) {
           fired.midBoost.add(h.id);
-          setCaption(`🌟 ${h.displayName} 변신!`);
+          showBubble(h.id, '🌟 변신!');
         }
         if (quirk.isTreeResting && !fired.treeRest.has(h.id)) {
           fired.treeRest.add(h.id);
-          setCaption(`🦅 ${h.displayName} 잠시 쉬어간다`);
+          showBubble(h.id, '🦅 잠시 쉬어간다');
         }
       }
-      // 1·2·3등 통과 시 캡션
+      // 1·2·3등 통과 시 말풍선 (수상 horse 위)
       for (const r of state.results) {
         if (r.rank <= 3 && !fired.ranks.has(r.rank)) {
           fired.ranks.add(r.rank);
-          setCaption(`${r.rank === 1 ? '🏆 ' : ''}${r.rank}등 — ${r.displayName}`);
+          showBubble(r.id, `${r.rank === 1 ? '🏆 ' : ''}${r.rank}등!`, 4000);
         }
       }
 
@@ -407,6 +419,41 @@ export default function HorseRaceGame() {
                 }}
               >
                 <div className="flex flex-col items-center relative">
+                  {/* 말풍선 — per-horse 이벤트 (quirk / 등수 / 스턴 / 다크호스) */}
+                  {bubbles[h.id] && (
+                    <motion.div
+                      key={bubbles[h.id]}
+                      initial={{ opacity: 0, y: 4, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className="absolute left-1/2 -translate-x-1/2 px-sm py-xxs rounded-md whitespace-nowrap pointer-events-none"
+                      style={{
+                        bottom: 'calc(100% + 6px)',
+                        backgroundColor: 'rgba(13, 18, 24, 0.92)',
+                        color: '#ffffff',
+                        border: `1px solid ${COLOR_CORAL}`,
+                        boxShadow: `0 0 12px rgba(170, 45, 0, 0.45)`,
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        zIndex: 5,
+                      }}
+                    >
+                      {bubbles[h.id]}
+                      {/* 말풍선 꼬리 */}
+                      <span
+                        className="absolute left-1/2 -translate-x-1/2"
+                        style={{
+                          bottom: '-5px',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '5px solid transparent',
+                          borderRight: '5px solid transparent',
+                          borderTop: `5px solid ${COLOR_CORAL}`,
+                        }}
+                      />
+                    </motion.div>
+                  )}
                   {(() => {
                     const boosted = state ? isBoostActive(state, h.id) : false;
                     // v2.3 — 모든 positive quirk을 Coral 글로우로 통일 (시각 일관성)
