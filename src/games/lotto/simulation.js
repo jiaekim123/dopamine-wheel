@@ -202,27 +202,38 @@ export function stepLotto(state, dt) {
     state.vortex.finished = true;
   }
 
-  // 휘젓기 임펄스 — 사용자 피드백: 바람에 띄운 공처럼 위로 붕붕.
-  // 실제 빙고 머신: warmup = 강한 송풍기(공이 떠오름), extracting = 송풍 약화(중력 우세).
-  // V5 vortex 단계: 모든 공에 격렬한 위쪽 + 회전성 임펄스 (시각만, 결과 분포는 카오틱)
+  // 휘젓기 임펄스 — 사용자 피드백: warmup 단계에서 사방에서 바람이 도는 것처럼 챔버 전체를 삥삥 돌게.
+  // - warmup: 챔버 중심 기준 tangential vortex (CCW) + 약한 random + 미세 부력
+  // - extracting: 횡방향 random만 → gravity 우세로 자연 낙하
+  // - V5 페이크(vortex): 격렬한 위쪽 + sin 회전성
   if (state.elapsed - state.lastShakeAt >= state.shakeInterval) {
     state.lastShakeAt = state.elapsed;
     const isWarmup = state.phase === 'warmup';
-    let lift = isWarmup ? 1.3 : 0.0;
-    let forceScale = isWarmup ? 1.0 : 0.4;
-    if (inVortex) {
-      lift = 2.2;
-      forceScale = 1.8;
-    }
+    const forceScale = isWarmup ? 1.0 : inVortex ? 1.8 : 0.4;
     const f = state.shakeForce * forceScale;
+
     for (const entry of state.ballsByLabel.values()) {
       if (entry.extracted) continue;
-      const fy = -f * lift * (0.7 + randFloat() * 0.9);
-      // vortex 중에는 좌우 sin 회전성 추가
-      const fx = inVortex
-        ? (randFloat() - 0.5) * f * 1.6 +
-          Math.sin(state.elapsed * 6 + entry.body.position.x * 0.05) * f * 0.6
-        : (randFloat() - 0.5) * f * 1.4;
+      let fx;
+      let fy;
+      if (isWarmup) {
+        // 챔버 중심 → 공으로의 vector를 90° CCW 회전 (tangential 방향)
+        const dx = entry.body.position.x - CHAMBER.cx;
+        const dy = entry.body.position.y - CHAMBER.cy;
+        const d = Math.hypot(dx, dy) + 0.01;
+        const tangMag = f * 1.7;
+        fx = (-dy / d) * tangMag + (randFloat() - 0.5) * f * 0.5;
+        fy = (dx / d) * tangMag + (randFloat() - 0.5) * f * 0.5 - f * 0.35; // 살짝 부력
+      } else if (inVortex) {
+        fy = -f * 2.2 * (0.7 + randFloat() * 0.9);
+        fx =
+          (randFloat() - 0.5) * f * 1.6 +
+          Math.sin(state.elapsed * 6 + entry.body.position.x * 0.05) * f * 0.6;
+      } else {
+        // extracting: 횡방향만
+        fy = (randFloat() - 0.5) * f * 0.8;
+        fx = (randFloat() - 0.5) * f * 1.4;
+      }
       Matter.Body.applyForce(entry.body, entry.body.position, { x: fx, y: fy });
     }
   }
