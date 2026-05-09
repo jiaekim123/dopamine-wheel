@@ -163,6 +163,9 @@ export function createLotto(participants) {
     phase: 'warmup', // 'warmup' | 'extracting' | 'done'
     warmupDuration: WARMUP_MIN_SEC + randFloat() * (WARMUP_MAX_SEC - WARMUP_MIN_SEC),
     gate,
+    // 사용자 피드백: 바닥 stuck 방지용 — extracting 진입 시 reset, exit 발생 시 갱신.
+    // 1초 이상 갱신 없으면 챔버 하단 공에 강한 위쪽 burst.
+    lastExitAt: 0,
     // v2 V5 — 추첨기 가속 페이크 (격렬 진동 1회). extracting 진입 후 1.5초 시점, 0.5초 동안.
     vortex: {
       triggerOffset: 1.5, // extracting 시작 후 몇 초 뒤
@@ -184,6 +187,7 @@ export function stepLotto(state, dt) {
       state.gate = null;
     }
     state.phase = 'extracting';
+    state.lastExitAt = state.elapsed; // extracting 시작 = stuck 타이머 reset
   }
 
   // v2 V5 — 추첨기 가속 페이크 트리거 + 종료
@@ -300,7 +304,32 @@ export function stepLotto(state, dt) {
         entry.rank = state.nextRank++;
         entry.finishTime = state.elapsed;
         state.results.push(entry);
+        state.lastExitAt = state.elapsed;
         Matter.World.remove(state.world, entry.body);
+      }
+    }
+
+    // 사용자 피드백: 챔버 바닥에 공이 모여 정지하는 stuck 케이스.
+    // 1초 이상 추출 없으면 챔버 하단 공에 강한 위쪽 + tangential burst (밑에서 송풍기 부는 효과).
+    if (state.elapsed - state.lastExitAt > 1.0) {
+      state.lastExitAt = state.elapsed;
+      for (const entry of state.ballsByLabel.values()) {
+        if (entry.extracted) continue;
+        const dx = entry.body.position.x - CHAMBER.cx;
+        const dy = entry.body.position.y - CHAMBER.cy;
+        const isAtBottom = dy > 0; // 챔버 중심보다 아래
+        if (isAtBottom) {
+          // 강한 위쪽 + tangential CCW (회전성 위로 쳐올림)
+          const d = Math.hypot(dx, dy) + 0.01;
+          const fx = (-dy / d) * 0.04 + (randFloat() - 0.5) * 0.025;
+          const fy = (dx / d) * 0.04 - 0.05 - randFloat() * 0.025;
+          Matter.Body.applyForce(entry.body, entry.body.position, { x: fx, y: fy });
+        } else {
+          // 위쪽 공: 약한 random
+          const fx = (randFloat() - 0.5) * 0.025;
+          const fy = -0.005;
+          Matter.Body.applyForce(entry.body, entry.body.position, { x: fx, y: fy });
+        }
       }
     }
 
