@@ -29,7 +29,11 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # enablement: true — 저장소에 Pages가 비활성화 상태면 자동으로 활성화 (GitHub Actions source).
+      # 첫 배포 시 Settings → Pages 수동 설정 없이 워크플로우만으로 완료 가능.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
