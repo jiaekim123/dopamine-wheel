@@ -72,7 +72,8 @@ export function createLotto(participants) {
     const x = cx + Math.cos(a) * radius;
     const y = cy + Math.sin(a) * radius;
     segments.push(
-      Matter.Bodies.rectangle(x, y, segLen, 8, {
+      // 두께 12 — 빠른 공이 세그먼트를 한 frame 안에 통과(tunneling)하지 않도록 보강.
+      Matter.Bodies.rectangle(x, y, segLen, 12, {
         isStatic: true,
         angle: a + Math.PI / 2,
         friction: 0.02,
@@ -209,7 +210,7 @@ export function stepLotto(state, dt) {
   if (state.elapsed - state.lastShakeAt >= state.shakeInterval) {
     state.lastShakeAt = state.elapsed;
     const isWarmup = state.phase === 'warmup';
-    const forceScale = isWarmup ? 1.0 : inVortex ? 1.8 : 0.4;
+    const forceScale = isWarmup ? 1.0 : inVortex ? 1.4 : 0.4;
     const f = state.shakeForce * forceScale;
 
     for (const entry of state.ballsByLabel.values()) {
@@ -225,10 +226,13 @@ export function stepLotto(state, dt) {
         fx = (-dy / d) * tangMag + (randFloat() - 0.5) * f * 0.5;
         fy = (dx / d) * tangMag + (randFloat() - 0.5) * f * 0.5 - f * 0.35; // 살짝 부력
       } else if (inVortex) {
-        fy = -f * 2.2 * (0.7 + randFloat() * 0.9);
-        fx =
-          (randFloat() - 0.5) * f * 1.6 +
-          Math.sin(state.elapsed * 6 + entry.body.position.x * 0.05) * f * 0.6;
+        // V5 페이크 — 격렬한 vortex(회전) 우세로 변경. 위쪽 폭발 줄여 tunneling 방지.
+        const dx = entry.body.position.x - CHAMBER.cx;
+        const dy = entry.body.position.y - CHAMBER.cy;
+        const d = Math.hypot(dx, dy) + 0.01;
+        const tangMag = f * 1.8;
+        fx = (-dy / d) * tangMag + (randFloat() - 0.5) * f * 0.6;
+        fy = (dx / d) * tangMag + (randFloat() - 0.5) * f * 0.6 - f * 0.4;
       } else {
         // extracting: 횡방향만
         fy = (randFloat() - 0.5) * f * 0.8;
@@ -248,6 +252,43 @@ export function stepLotto(state, dt) {
   Matter.Engine.update(state.engine, stepMs);
   if (dt > 1 / 30) {
     Matter.Engine.update(state.engine, (dt - 1 / 30) * 1000);
+  }
+
+  // 안전 장치 1 — 공 속도 캡 (tunneling 방지)
+  // 임계값 이상 빠른 공은 같은 방향으로 클램프해 segment 통과를 막는다.
+  const MAX_BALL_SPEED = 18;
+  for (const entry of state.ballsByLabel.values()) {
+    if (entry.extracted) continue;
+    const v = entry.body.velocity;
+    const sp = Math.hypot(v.x, v.y);
+    if (sp > MAX_BALL_SPEED) {
+      const k = MAX_BALL_SPEED / sp;
+      Matter.Body.setVelocity(entry.body, { x: v.x * k, y: v.y * k });
+    }
+  }
+
+  // 안전 장치 2 — 챔버 외부 escape recovery
+  // 공이 어떤 이유로든 챔버 boundary 밖으로 빠져나갔으면 (튜브 진입은 제외) 중심으로 복귀.
+  const escapeDist = CHAMBER.radius + 40;
+  for (const entry of state.ballsByLabel.values()) {
+    if (entry.extracted) continue;
+    const px = entry.body.position.x;
+    const py = entry.body.position.y;
+    // 튜브 영역(아래쪽 출구)으로 정상 진입 중이면 건드리지 않음
+    const inTubeArea =
+      Math.abs(px - CHAMBER.cx) < CHAMBER.tubeHalfWidth + 4 && py > CHAMBER.tubeYTop - 8;
+    if (inTubeArea) continue;
+    const dx = px - CHAMBER.cx;
+    const dy = py - CHAMBER.cy;
+    if (Math.hypot(dx, dy) > escapeDist) {
+      // 챔버 안쪽 무작위 위치로 복귀 + velocity 0
+      Matter.Body.setPosition(entry.body, {
+        x: CHAMBER.cx + (randFloat() - 0.5) * CHAMBER.radius * 0.6,
+        y: CHAMBER.cy + (randFloat() - 0.5) * CHAMBER.radius * 0.6,
+      });
+      Matter.Body.setVelocity(entry.body, { x: 0, y: 0 });
+      Matter.Body.setAngularVelocity(entry.body, 0);
+    }
   }
 
   // 추출 체크 — extracting 단계에서만

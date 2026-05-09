@@ -18,7 +18,7 @@ describe('GameCardGrid', () => {
 
   it('renders all 4 game names on Home', () => {
     render(<GameCardGrid />);
-    expect(screen.getByText('야생 더비')).toBeDefined();
+    expect(screen.getByText('카오스 레이스')).toBeDefined();
     expect(screen.getByText('럭키 로또')).toBeDefined();
     expect(screen.getByText('폭탄 돌리기')).toBeDefined();
     expect(screen.getByText('운명의 낙하')).toBeDefined();

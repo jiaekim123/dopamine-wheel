@@ -1,4 +1,4 @@
-// PRD §3.2 검증 — 야생 더비 시뮬레이션이 항상 rank 1~n을 산출하는지.
+// PRD §3.2 검증 — 카오스 레이스 시뮬레이션이 항상 rank 1~n을 산출하는지.
 // 테스트 시드(mulberry32) 주입으로 결정적 동작 확인.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -55,10 +55,10 @@ describe('horseRace simulation', () => {
     }
   });
 
-  it('finishes within 10~30 seconds (PRD §3.3 game length budget)', () => {
+  it('finishes within game length budget (v2.5: AVG_FINISH_SEC=9, faster)', () => {
     const state = createHorseRace(buildParticipants(10));
     runToFinish(state);
-    expect(state.elapsed).toBeGreaterThan(8); // intro 3.5s 빼고도 10초 보장
+    expect(state.elapsed).toBeGreaterThan(5);
     expect(state.elapsed).toBeLessThan(28);
   });
 
@@ -83,7 +83,7 @@ describe('horseRace simulation', () => {
     expect(state.elapsed).toBeLessThan(AVG_FINISH_SEC * 3.0);
   });
 
-  // v2.2 — 야생 더비 동물 species 시스템
+  // v2.2 — 카오스 레이스 동물 species 시스템
   it('assigns species from 6-species pool (v2.2)', () => {
     const state = createHorseRace(buildParticipants(12));
     const validSpecies = new Set(['rabbit', 'turtle', 'penguin', 'hamster', 'snail', 'eagle']);

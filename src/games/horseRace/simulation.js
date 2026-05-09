@@ -1,4 +1,4 @@
-// PRD §3.2 + §7.4 — 야생 더비 (구 경주마) Step-based Random 시뮬레이션.
+// PRD §3.2 + §7.4 — 카오스 레이스 (구 야생 더비 / 경주마) Step-based Random 시뮬레이션.
 //
 // 원칙: 매 step마다 무작위 가속도 추첨 → 시뮬 결과 그대로가 결과.
 // 결과를 사전에 정해두지 않으며, 모든 racer가 결승선을 통과해 자연스럽게 rank 1~n이 산출된다.
@@ -6,14 +6,15 @@
 // v1.5: 페이크 아웃 4종 시스템 (PRD §7.3 + §7.4) — wobble / darkhorse / stun / 사진판정.
 // v2 V3: 부스터 타일 (시각만, 결과 불변).
 // v2 V4: 시네마틱 follow-leader PIP (컴포넌트).
-// v2.2: 야생 더비 — 동물 6종 (🐰🐢🐧🐹🐌🦅) + 장애물 시스템.
+// v2.2: 카오스 레이스 — 동물 6종 (🐰🐢🐧🐹🐌🦅) + 장애물 시스템.
 // v2.3: 동물별 다양성 quirk 보강 — wake sprint(🐰) / catchup(🐢) /
 //        ice slide(🐧) / turbo(🐹) / mid-boost(🐌) / tree rest(🦅) +
 //        baseSpeedFactor 재조정으로 평균 finish 균형 강화.
 
 import { randFloat } from '../../lib/random.js';
 
-export const AVG_FINISH_SEC = 14;
+// v2.5 — 사용자 요청 "속도 더 빠르게". 14 → 9초.
+export const AVG_FINISH_SEC = 9;
 export const TARGET_INTERVAL_SEC = 0.2;
 export const VEL_FACTOR_MIN = 0.5;
 export const VEL_FACTOR_MAX = 1.6;
@@ -22,7 +23,7 @@ const VEL_LERP_RATE = 4; // 1/s — target 속도로 수렴하는 속도
 // 결승선 위치 정규화: 0(시작) ~ 1(결승)
 export const FINISH_LINE = 1;
 
-// v2.2 야생 더비 — 동물 6종 + quirk 정의.
+// v2.2 카오스 레이스 — 동물 6종 + quirk 정의.
 // baseSpeedFactor는 quirk가 평균 finish에 미치는 영향을 상쇄해
 // 100회 시뮬 평균 rank가 ±0.5 이내로 균등하도록 미세 조정.
 export const SPECIES_PROPS = {

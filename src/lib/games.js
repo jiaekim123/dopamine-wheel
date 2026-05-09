@@ -5,9 +5,9 @@ export const GAMES = [
   {
     id: 'horse',
     emoji: '🏁',
-    name: '야생 더비',
-    nameEn: 'Wild Derby',
-    description: '6종 동물 + 부스터·장애물 카오스 레이스',
+    name: '카오스 레이스',
+    nameEn: 'Chaos Race',
+    description: '동물별 능력 · 부스터 · 장애물이 뒤섞인 추격전',
     minPlayers: 2,
     // v2 V4: 시네마틱 카메라(선두 PIP) 도입으로 16명까지 확장
     maxPlayers: 16,

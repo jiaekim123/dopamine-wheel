@@ -1,4 +1,4 @@
-// PRD §7.4 — 야생 더비 (Coral) 게임 화면.
+// PRD §7.4 — 카오스 레이스 (Coral) 게임 화면.
 // 다크 베이스 + Coral 액센트 (트랙 라인) + Gold 결승선.
 // v2.2: 동물 6종 (🐰🐢🐧🐹🐌🦅) + 장애물 시스템.
 // 결승선 임박 시 자동 슬로우모션, 1·2등 박빙 시 사진판정 배너 (페이크 아웃).
@@ -26,6 +26,14 @@ const COLOR_LANE_LINE = 'rgba(170, 45, 0, 0.28)';
 
 const FINISH_HOLD_MS = 1400;
 
+// v2.5 — 월드/카메라 정책
+// 월드 inner는 viewport 250%. 카메라가 leader를 viewport 40% 지점에 두도록 추적.
+// translateX_pct는 inner 자체 너비 기준(%). 따라서 0~60 사이가 유효 범위.
+//   - inner 너비 250% 기준, 60% 이동 시 inner의 우측이 viewport 우측에 정렬됨.
+const WORLD_WIDTH_PCT = 250; // inner div width (% of viewport)
+const CAMERA_LEADER_VIEW_PCT = 40; // leader가 viewport에서 보이는 위치 (%)
+const CAMERA_MAX_PCT = (1 - 100 / WORLD_WIDTH_PCT) * 100; // = 60
+
 export default function HorseRaceGame() {
   const participants = useGameStore((s) => s.participants);
   const finishGame = useGameStore((s) => s.finishGame);
@@ -35,6 +43,8 @@ export default function HorseRaceGame() {
   const lastTimeRef = useRef(0);
   const slowMoRef = useRef(1);
   const finishedRef = useRef(false);
+  // v2.5 — 선두 추적 카메라 (translateX_pct 단위, 0~CAMERA_MAX_PCT)
+  const cameraOffsetRef = useRef(0);
 
   const [, forceRender] = useReducer((n) => n + 1, 0);
   const [photoFinish, setPhotoFinish] = useState(false);
@@ -82,6 +92,22 @@ export default function HorseRaceGame() {
       slowMoRef.current += (targetSlow - slowMoRef.current) * Math.min(1, dtRaw * 5);
 
       stepHorseRace(state, dtRaw * slowMoRef.current);
+
+      // v2.5 — 선두 추적 카메라. inner 좌표계에서 leader xPct = 5 + position * 90.
+      // translateX_pct = leader_xPct - CAMERA_LEADER_VIEW_PCT/(WORLD_WIDTH_PCT/100)
+      //   inner-rel = (xPct - cam) * (WORLD_WIDTH_PCT/100) → screen-%
+      //   want screen-% = 40 → cam = xPct - 40 / (WORLD/100) = xPct - 16
+      const leaderPos = state.horses.reduce(
+        (m, h) => Math.max(m, h.position),
+        0
+      );
+      const leaderXPct = 5 + leaderPos * 90;
+      const camTarget = Math.max(
+        0,
+        Math.min(CAMERA_MAX_PCT, leaderXPct - CAMERA_LEADER_VIEW_PCT / (WORLD_WIDTH_PCT / 100))
+      );
+      cameraOffsetRef.current +=
+        (camTarget - cameraOffsetRef.current) * Math.min(1, dtRaw * 4);
 
       if (!photoFinish && isPhotoFinish(state)) setPhotoFinish(true);
 
@@ -202,8 +228,8 @@ export default function HorseRaceGame() {
             🏁
           </span>
           <div>
-            <h2 className="text-title-lg font-medium leading-tight">야생 더비</h2>
-            <p className="text-caption text-on-dark/50">Wild Derby</p>
+            <h2 className="text-title-lg font-medium leading-tight">카오스 레이스</h2>
+            <p className="text-caption text-on-dark/50">Chaos Race</p>
           </div>
         </div>
         <div className="text-right">
@@ -217,11 +243,20 @@ export default function HorseRaceGame() {
         </div>
       </div>
 
-      {/* Track */}
+      {/* Track — 외부 viewport. v2.5: inner를 250% 너비로 두고 카메라 transform */}
       <div
         className="relative flex-1 mx-xxl mb-xxl rounded-md overflow-hidden"
         style={{ backgroundColor: COLOR_TRACK, boxShadow: `inset 0 0 80px rgba(170,45,0,0.08)` }}
       >
+        {/* 월드 inner — 카메라 추적 (translateX_pct 기준) */}
+        <div
+          className="absolute inset-y-0 left-0"
+          style={{
+            width: `${WORLD_WIDTH_PCT}%`,
+            transform: `translateX(-${cameraOffsetRef.current}%)`,
+            willChange: 'transform',
+          }}
+        >
         {/* 시작 라인 */}
         <div className="absolute top-0 bottom-0 left-[5%] w-[2px] bg-on-dark/30" />
 
@@ -288,10 +323,12 @@ export default function HorseRaceGame() {
           );
         })}
 
-        {/* 결승선 */}
+        {/* 결승선 — v2.5: inner 좌표계에서 left 95% (= position 1.0) */}
         <div
-          className="absolute top-0 bottom-0 right-[5%] w-[8px]"
+          className="absolute top-0 bottom-0 w-[8px]"
           style={{
+            left: '95%',
+            transform: 'translateX(-50%)',
             background: `repeating-linear-gradient(0deg, ${COLOR_GOLD} 0 14px, #181d26 14px 28px)`,
             boxShadow: celebrating ? `0 0 32px ${COLOR_GOLD}` : 'none',
             transition: 'box-shadow 0.4s ease-out',
@@ -518,14 +555,16 @@ export default function HorseRaceGame() {
           );
         })}
 
-        {/* 사진판정 배너 */}
+        </div>{/* /월드 inner — 카메라 transform 영향 종료 */}
+
+        {/* 사진판정 배너 — outer fixed (카메라 영향 없음) */}
         {photoFinish && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             className="absolute top-md left-1/2 -translate-x-1/2 px-md py-xs rounded-full font-medium"
-            style={{ backgroundColor: COLOR_GOLD, color: '#181d26', fontSize: '13px' }}
+            style={{ backgroundColor: COLOR_GOLD, color: '#181d26', fontSize: '13px', zIndex: 5 }}
           >
             📸 PHOTO FINISH
           </motion.div>

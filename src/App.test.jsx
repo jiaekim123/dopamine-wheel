@@ -23,7 +23,7 @@ describe('App routing', () => {
   it('clicking a game card transitions screen → intro', () => {
     useGameStore.getState().setRawInput('a, b, c');
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /야생 더비/ }));
+    fireEvent.click(screen.getByRole('button', { name: /카오스 레이스/ }));
     expect(useGameStore.getState().screen).toBe('intro');
     expect(useGameStore.getState().selectedGame).toBe('horse');
   });
