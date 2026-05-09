@@ -9,6 +9,7 @@ import IntroScreen from './screens/IntroScreen.jsx';
 import PlayScreen from './screens/PlayScreen.jsx';
 import ResultScreen from './screens/ResultScreen.jsx';
 import ConfirmModal from './components/ConfirmModal.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { useEscapeConfirm } from './hooks/useEscapeToHome.js';
 import { useGameStore } from './store/useGameStore.js';
 
@@ -27,8 +28,16 @@ export default function App() {
     <>
       {showHome && <HomeScreen />}
       {screen === 'intro' && <IntroScreen />}
-      {screen === 'play' && <PlayScreen />}
-      {screen === 'result' && <ResultScreen />}
+      {screen === 'play' && (
+        <ErrorBoundary>
+          <PlayScreen />
+        </ErrorBoundary>
+      )}
+      {screen === 'result' && (
+        <ErrorBoundary>
+          <ResultScreen />
+        </ErrorBoundary>
+      )}
 
       {/* Dopamine → Editorial 흰색 페이드 (z-index는 모달보다 낮게) */}
       <AnimatePresence>
