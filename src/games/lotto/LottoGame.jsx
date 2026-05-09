@@ -227,7 +227,7 @@ export default function LottoGame() {
           />
         )}
 
-      <div className="flex-1 flex gap-xl px-lg md:px-xxl pb-xxl min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row gap-md md:gap-xl px-lg md:px-xxl pb-xxl min-h-0">
         {/* Chamber + tube SVG */}
         <div className="relative flex-1 min-w-0">
           <svg
@@ -334,8 +334,8 @@ export default function LottoGame() {
           </svg>
         </div>
 
-        {/* 추출 순서 보드 */}
-        <div className="w-[260px] shrink-0 flex flex-col">
+        {/* 추출 순서 보드 — 모바일에선 보드를 아래로 좁게, md+에선 우측 사이드바 */}
+        <div className="w-full md:w-[260px] shrink-0 flex flex-col max-h-[30vh] md:max-h-none">
           <div className="text-caption text-on-dark/50 mb-sm uppercase tracking-wider">
             추출 순서
           </div>

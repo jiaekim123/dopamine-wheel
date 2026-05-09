@@ -161,7 +161,7 @@ export default function RouletteGame() {
         </div>
       </div>
 
-      <div className="flex-1 flex gap-xl px-lg md:px-xxl pb-xxl min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row gap-md md:gap-xl px-lg md:px-xxl pb-xxl min-h-0">
         {/* 룰렛 보드 */}
         <div className="relative flex-1 min-w-0 flex items-center justify-center">
           <svg
@@ -309,8 +309,8 @@ export default function RouletteGame() {
           </svg>
         </div>
 
-        {/* 추출 순서 보드 */}
-        <div className="w-[260px] shrink-0 flex flex-col">
+        {/* 추출 순서 보드 — 모바일 세로 스택, md+ 우측 사이드바 */}
+        <div className="w-full md:w-[260px] shrink-0 flex flex-col max-h-[30vh] md:max-h-none">
           <div className="text-caption text-on-dark/50 mb-sm uppercase tracking-wider">
             추출 순서
           </div>
